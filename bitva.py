@@ -26,7 +26,6 @@ idMe = 396978030
 bitva_ru = int(data1.cell(1, 1).value)
 ignore_ru = str(data5.cell(2, 1).value)
 ignore_ru = ignore_ru.split('/')
-print(ignore_ru)
 castle = '(🖤|🍆|🐢|🌹|🍁|☘️|🦇)'
 form_a = '⛳️Сводки с полей:\n' \
     + castle + ': (\S+) (\S*)\s*(\-*.*)\n' \
