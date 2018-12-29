@@ -24,8 +24,9 @@ data5 = client1.open('Digest').worksheet('sup')
 bot = telebot.TeleBot('658667571:AAERNsgYO-l0Ge7egyDbeSEPpuVDfJKeF5Q')
 idMe = 396978030
 bitva_ru = int(data1.cell(1, 1).value)
-ignore_ru = str(data5.cell(1, 2).value)
+ignore_ru = str(data5.cell(2, 1).value)
 ignore_ru = ignore_ru.split('/')
+print(ignore_ru)
 castle = '(🖤|🍆|🐢|🌹|🍁|☘️|🦇)'
 form_a = '⛳️Сводки с полей:\n' \
     + castle + ': (\S+) (\S*)\s*(\-*.*)\n' \
@@ -63,9 +64,7 @@ def bitva_cw3():
                 search2 = re.search(form_b, str(text.text))
                 if search1:
                     print('работаю https://t.me/CWDigest/' + str(bitva_ru))
-                    bitva = str(int(time.mktime(datetime.strptime(
-                        search2.group(15), '%d/%m/%y %H:%M').timetuple())) + 3 * 60 * 60)
-                    print(bitva)
+                    bitva = str(int(time.mktime(datetime.strptime(search2.group(15), '%d/%m/%y %H:%M').timetuple())))
                     for i in search1.groups():
                         if i in castle and i != '':
                             points = '+0'
