@@ -63,7 +63,9 @@ def bitva_cw3():
                 search2 = re.search(form_b, str(text.text))
                 if search1:
                     print('работаю https://t.me/CWDigest/' + str(bitva_ru))
-                    bitva = str(int(time.mktime(datetime.strptime(search2.group(15), '%d/%m/%y %H:%M').timetuple())))
+                    bitva = str(int(time.mktime(datetime.strptime(
+                        search2.group(15), '%d/%m/%y %H:%M').timetuple())) + 3 * 60 * 60)
+                    print(bitva)
                     for i in search1.groups():
                         if i in castle and i != '':
                             points = '+0'
