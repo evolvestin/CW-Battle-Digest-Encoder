@@ -19,7 +19,7 @@ creds5 = ServiceAccountCredentials.from_json_keyfile_name('bitvo5.json', scope)
 client1 = gspread.authorize(creds1)
 client5 = gspread.authorize(creds5)
 data1 = client1.open('Digest').worksheet('main')
-data5 = client1.open('Digest').worksheet('main')
+data5 = client1.open('Digest').worksheet('sup')
 
 bot = telebot.TeleBot('658667571:AAERNsgYO-l0Ge7egyDbeSEPpuVDfJKeF5Q')
 idMe = 396978030
