@@ -1,0 +1,12 @@
+{
+  "type": "service_account",
+  "project_id": "bitva-digest",
+  "private_key_id": "e00cb7ae90bd2df08da8f58693fe1ec9a1dad7c9",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQCQGborgXhPvHlM\nzsdniz0WS30NUXORvidlFAsrLIz6XOoXl2j8TvxDMXPHXHxy6QlsaL+hOvKm0vqR\n3IWkXykETEkDUipXO1GGjOz37u2YFLBkGPDS6e7SvGkncU00zQmgy4/joB8+9PoF\n1tYnWO4p74wehuQqr2jvKlH828100UJc+UiD3ynhbH6ugzf2sNEDHz4Rhx7H/3qE\ntkY8jyhi+88nLFq3kFksiGkhK1Zd7PJryCZzYKy1D89i+x5Hj8Gw2J1Yc0SPRhFs\n40MqdvUCXxjJuaEIvZjHgSN7m375Y/QIOrE4zvSk4Ctikr8NGPZVb9C9NA9OISWM\nanv2jx+jAgMBAAECggEAIt3uw48gvt5iVVjlO+MfhVD/saTHO3kQzC7U4v31ILEx\nvUKYFxC/jjydgJwayq0jaBVSZN9ADmiXU4rR1WtnH9CbjA+qChBi0hUwU29/EuDS\nq22ze7052cjYAsCyBzgjf8Ixj0jTtqaNBrOsfrnQato5A7vs4n0t/Uy2qOHAbWbF\nvGDfmt883sV/ppsFSytNPB36HCUWcYOx9biQdHmFOMZV80u4lL3OFIxPKnhtqop2\nH49jSfn80/oyQu1BLBTquIL9wiPnCNyDlOgUxIyGxOum2liwtPfiqIL5wQIu/2dq\nWOLWd7uKF8jhrnxAaJvZEoR9Ab7/jh8C2crMeywRtQKBgQDKs4iafC7wvdHe/xBb\ndJgpRXU03oDNk2JCC9dW96rPDwfxwCELLEyynhaaEyy8rlE4j5nzmThF1P0NrtM4\nRsO1ONAA1pc10Kj8ckgDP+6j8ya/pt7Apbalvl/NS+PmWRaZt4Og2zfYMbi+A02N\ntwzjf0gh6t081OdpJnEgNxK29QKBgQC1/ZZ9Incih5GDCVnCaKDBxicEdYq8MmBB\nB5sOJsrUnPxzIDoKdyKCo43pY4PCljQ5wDHuJ44BglFf4OXovfwOMHkQh85VIqGx\nIYS1y8H4EVYSklwAbf7Pk9fvRzMF+5Sbfa48Uu9tsjx6sWL+7/+I9nc/Q6scrz/n\nP0JEceXtNwKBgBnnPYK4cesz5rj/kWCOks9bX/IEqSMcPYdBKiCj/8D8I8DCE7bw\nz1BYIX1JDAOEpz56I2tc3jMWV8xC1h0v9dyXyQUCZ0pqQt4X4JoBtoZfEUmWkoq9\n4oxluqpqk1IhemDkcb7BpO5M1FX76BI/HTeJUXd8Iw+eCYCHeBds0khtAoGAU5oM\nuatNgyU36TQwcahSwPFgFyJP+yhBI151EkkrwAPlzJUvVINp7Q1pMZ+vdYI+t5Dc\n3wR4raTJ8PuFYid0VKhb1QYt+NoR4Sb+qezSTDzah2mIrgHZnk3SUm8ot0Tc/Zj8\no2WN65yHP+2hBnAFuUtPeFaDkofHGVnr/Tk9YH0CgYA9wpx/wXyUxRqH2kCIl2oM\n7vHEc4JpjqSbal1zAO0e0BTzO7LPI0VldiT7+uhdoO2QgXpcCjmGZmLnodtXQuFq\nfMZJwKgO8FV1/Ir18gXDDHnuYhScCSIRMj0e8GAxrQcn7skHp1XZnrUmscywo0zX\niNpiTiKnhPAsVZ+qlU8gcw==\n-----END PRIVATE KEY-----\n",
+  "client_email": "bitvo5@bitva-digest.iam.gserviceaccount.com",
+  "client_id": "118208821721623270972",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/bitvo5%40bitva-digest.iam.gserviceaccount.com"
+}
