@@ -32,7 +32,7 @@ finite = int(data5.cell(2, 3).value)
 
 bot = telebot.TeleBot('733988805:AAGi7yK8wziPgkn25R8a86XbPUlFwLSbBBE')
 idMe = 396978030
-checker = 1
+checker = 641
 bitva_ru = int(data1.cell(1, 1).value)
 ignore_ru = str(data5.cell(2, 1).value)
 our_month = int(data5.cell(1, 2).value)
@@ -78,7 +78,7 @@ def big_time(stamp):
 def bitva_cw3():
     while True:
         try:
-            sleep(7)
+            sleep(5)
             global data1
             global bitva_ru
             goo = []
@@ -88,7 +88,10 @@ def bitva_cw3():
                 search2 = re.search(form_b, str(text.text))
                 if search1:
                     print('работаю https://t.me/CWDigest/' + str(bitva_ru))
-                    bitva = str(int(time.mktime(datetime.strptime(search2.group(15), '%d/%m/%y %H:%M').timetuple())) + 3 * 60 * 60)
+                    bitva = str(int(time.mktime(datetime.strptime(search2.group(15), '%d/%m/%y %H:%M').timetuple())))
+                    hours_btv = int(datetime.utcfromtimestamp(int(bitva)).strftime('%H'))
+                    if hours_btv == 6 or hours_btv == 14 or hours_btv == 22:
+                        bitva = str(int(bitva) + 3 * 60 * 60)
                     for i in search1.groups():
                         if i in castle and i != '':
                             points = '+0'
@@ -107,17 +110,18 @@ def bitva_cw3():
                                 box = '+0'
                             bitva = bitva + '/' + search1.group(search1.groups().index(i) + 1) + '.' + \
                                     search1.group(search1.groups().index(i) + 2) + '.' + gold + '.' + box + '.' + points
+                    bitva = re.sub('🏆Очки:', '+0', bitva)
                     goo.append(str(bitva))
+                    bitva_ru = bitva_ru + 1
                     try:
-                        data1.update_cell(1, 1, bitva_ru)
                         data1.insert_row(goo, 2)
+                        data1.update_cell(1, 1, bitva_ru)
                     except:
                         creds1 = ServiceAccountCredentials.from_json_keyfile_name('bitvo1.json', scope)
                         client1 = gspread.authorize(creds1)
                         data1 = client1.open('Digest').worksheet('main')
-                        data1.update_cell(1, 1, bitva_ru)
                         data1.insert_row(goo, 2)
-                    bitva_ru = bitva_ru + 1
+                        data1.update_cell(1, 1, bitva_ru)
                 else:
                     print('https://t.me/CWDigest/' + str(bitva_ru) + ' Битвы пока нет, ничего не делаю')
             else:
@@ -133,8 +137,8 @@ def bitva_cw3():
 def bitva_cw3_checker():
     while True:
         try:
-            sleep(15)
-            global data4
+            sleep(6)
+            global data3
             global checker
             goo = []
             if str(checker) not in ignore_ru:
@@ -143,7 +147,10 @@ def bitva_cw3_checker():
                 search2 = re.search(form_b, str(text.text))
                 if search1:
                     print('проверяю https://t.me/CWDigest/' + str(checker))
-                    bitva = str(int(time.mktime(datetime.strptime(search2.group(15), '%d/%m/%y %H:%M').timetuple())) + 3 * 60 * 60)
+                    bitva = str(int(time.mktime(datetime.strptime(search2.group(15), '%d/%m/%y %H:%M').timetuple())))
+                    hours_btv = int(datetime.utcfromtimestamp(int(bitva)).strftime('%H'))
+                    if hours_btv == 6 or hours_btv == 14 or hours_btv == 22:
+                        bitva = str(int(bitva) + 3 * 60 * 60)
                     for i in search1.groups():
                         if i in castle and i != '':
                             points = '+0'
@@ -162,17 +169,18 @@ def bitva_cw3_checker():
                                 box = '+0'
                             bitva = bitva + '/' + search1.group(search1.groups().index(i) + 1) + '.' + \
                                     search1.group(search1.groups().index(i) + 2) + '.' + gold + '.' + box + '.' + points
+                    bitva = re.sub('🏆Очки:', '+0', bitva)
                     try:
-                        google = data4.col_values(1)
+                        google = data3.col_values(1)
                     except:
-                        creds4 = ServiceAccountCredentials.from_json_keyfile_name('bitvo4.json', scope)
-                        client4 = gspread.authorize(creds4)
-                        data4 = client4.open('Digest').worksheet('main')
-                        google = data4.col_values(1)
+                        creds3 = ServiceAccountCredentials.from_json_keyfile_name('bitvo3.json', scope)
+                        client3 = gspread.authorize(creds3)
+                        data3 = client3.open('Digest').worksheet('main')
+                        google = data3.col_values(1)
                     checker = checker + 1
                     if bitva not in google:
                         goo.append(str(bitva))
-                        data4.insert_row(goo, 2)
+                        data3.insert_row(goo, 2)
                         bot.send_message(idMe, 'Привет\nhttps://t.me/CWDigest/' + str(checker - 1) +
                                          '\n\n' + str(bitva) + '\n\nБитву добавил в список <3')
                 else:
@@ -210,11 +218,11 @@ def summary_ru():
             for i in castle_names:
                 db.update_castle(i, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
             for i in google:
-                if google.index(i) >= start and google.index(i) <= finite:
-                    bitva = i.split('/')
-                    if google.index(i) == start:
+                bitva = i.split('/')
+                if int(bitva[0]) >= start and int(bitva[0]) <= finite:
+                    if int(bitva[0]) == start:
                         first_times = int(bitva[0])
-                    if google.index(i) == finite:
+                    if int(bitva[0]) == finite:
                         last_times = int(bitva[0])
                     bitva.pop(0)
                     for h in bitva:
@@ -304,8 +312,8 @@ def summary_ru():
                     text = text + '\n'
                 #bot.send_message(idMe, text, parse_mode='HTML')
                 bot.send_message(-1001444070646, text, parse_mode='HTML')
-                start = finite + 1
-                finite = start + 20
+                start = finite + (8 * 60 * 60)
+                finite = finite + (7 * 24 * 60 * 60) #- (8 * 60 * 60)
                 try:
                     data5.update_cell(2, 2, start)
                     data5.update_cell(2, 3, finite)
@@ -319,7 +327,7 @@ def summary_ru():
                     data5.update_cell(2, 2, start)
                     data5.update_cell(2, 3, finite)
         except Exception as e:
-            bot.send_message(idMe, 'вылет summary_ru')
+            bot.send_message(idMe, 'вылет summary_ru\n' + str(e))
             sleep(0.9)
 
 
@@ -357,7 +365,6 @@ def month():
                     bitva.pop(0)
                     for h in bitva:
                         splited = h.split('.')
-                        print('hmmm')
                         name = castle_names[castle_db.index(splited[0])]
                         castle_array = db.get_castle(name)
                         gold = castle_array[1]
@@ -371,7 +378,6 @@ def month():
                         def_low = castle_array[9]
                         def_ger = castle_array[10]
                         sleeps = castle_array[11]
-                        print('mmm?')
                         if splited[2][:1] == '+':
                             gold = gold + int(re.sub('\+', '', splited[2]))
                         else:
@@ -406,6 +412,8 @@ def month():
                                          def_ger, sleeps)
 
             posting = int(datetime.utcfromtimestamp(int(last_times + 8 * 60 * 60)).strftime('%m'))
+            if posting == 1 and our_month == 12:
+                posting = 13
 
             if posting > our_month:
                 paper = db.get_paper()
@@ -444,9 +452,10 @@ def month():
                         text = text + '<code>|😴:' + str(i[11]) + '</code>'
                     text = text + '\n'
                 bot.send_message(-1001444070646, text, parse_mode='HTML')
+                if posting == 13:
+                    posting = 1
                 try:
-                    data5.update_cell(2, 2, start)
-                    data5.update_cell(2, 3, finite)
+                    data5.update_cell(1, 2, int(posting))
                 except:
                     creds5 = ServiceAccountCredentials.from_json_keyfile_name('bitvo5.json', scope)
                     client5 = gspread.authorize(creds5)
@@ -455,6 +464,28 @@ def month():
 
         except Exception as e:
             bot.send_message(idMe, 'вылет month\n' + str(e))
+            sleep(0.9)
+
+
+def double_checker():
+    while True:
+        try:
+            sleep(30)
+            global data4
+            try:
+                google = data4.col_values(1)
+            except:
+                creds4 = ServiceAccountCredentials.from_json_keyfile_name('bitvo4.json', scope)
+                client4 = gspread.authorize(creds4)
+                data4 = client4.open('Digest').worksheet('main')
+                google = data4.col_values(1)
+            for i in google:
+                if google.count(i) > 1:
+                    bot.send_message(idMe, 'Элемент\n\n' + str(i) + '\n\nповторяется в базе '
+                                     + str(google.count(i)) + ' раз.\nНа данный момент он находится на позиции '
+                                     + str(google.index(i)) + ' в массиве')
+        except Exception as e:
+            bot.send_message(idMe, 'double_checker\n' + str(e))
             sleep(0.9)
 
 
@@ -480,4 +511,5 @@ if __name__ == '__main__':
     _thread.start_new_thread(summary_ru, ())
     _thread.start_new_thread(bitva_cw3_checker, ())
     _thread.start_new_thread(month, ())
+    _thread.start_new_thread(double_checker, ())
     telepol()
