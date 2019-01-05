@@ -199,7 +199,7 @@ def summary_ru():
             global data5
             global start
             global finite
-            sleep(20)
+            sleep(300)
             db = SQLighter('actives.db')
             first_times = 0
             last_times = 0
@@ -302,7 +302,7 @@ def summary_ru():
                     # if i[9] > 0:
                     # text = text + '<code>|🛡👌️:' + str(i[9]) + '</code>'
                     if i[10] > 0:
-                        text = text + '<code>|🔱🛡⚡️:' + str(i[10]) + '</code>'
+                        text = text + '<code>|🔱️:' + str(i[10]) + '</code>'
                     if i[11] > 0:
                         text = text + '<code>|😴:' + str(i[11]) + '</code>'
 
@@ -334,7 +334,7 @@ def month():
             global data3
             global data5
             global bitva_ru
-            sleep(20)
+            sleep(300)
             db = SQLighter('actives2.db')
             first_times = 0
             last_times = 0
@@ -444,7 +444,7 @@ def month():
                     # if i[9] > 0:
                     # text = text + '<code>|🛡👌️:' + str(i[9]) + '</code>'
                     if i[10] > 0:
-                        text = text + '<code>|🔱🛡⚡️:' + str(i[10]) + '</code>'
+                        text = text + '<code>|🔱️:' + str(i[10]) + '</code>'
                     if i[11] > 0:
                         text = text + '<code>|😴:' + str(i[11]) + '</code>'
                     text = text + '\n'
