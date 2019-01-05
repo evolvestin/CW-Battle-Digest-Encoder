@@ -137,10 +137,9 @@ def bitva_cw3():
 def bitva_cw3_checker():
     while True:
         try:
-            sleep(6)
+            sleep(20)
             global data3
             global checker
-            goo = []
             if str(checker) not in ignore_ru:
                 text = requests.get('https://t.me/CWDigest/' + str(checker))
                 search1 = re.search(form_a, str(text.text))
@@ -179,10 +178,8 @@ def bitva_cw3_checker():
                         google = data3.col_values(1)
                     checker = checker + 1
                     if bitva not in google:
-                        goo.append(str(bitva))
-                        data3.insert_row(goo, 2)
                         bot.send_message(idMe, 'Привет\nhttps://t.me/CWDigest/' + str(checker - 1) +
-                                         '\n\n' + str(bitva) + '\n\nБитву добавил в список <3')
+                                         '\n\n' + str(bitva) + '\n\nЭтой битвы нет, в базе, проверь')
                 else:
                     print('https://t.me/CWDigest/' + str(checker) + ' прошел все, нареканий нет')
             else:
@@ -470,7 +467,7 @@ def month():
 def double_checker():
     while True:
         try:
-            sleep(30)
+            sleep(1800)
             global data4
             try:
                 google = data4.col_values(1)
