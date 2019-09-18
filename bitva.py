@@ -510,3 +510,5 @@ if __name__ == '__main__':
     _thread.start_new_thread(month, ())
     _thread.start_new_thread(double_checker, ())
     telepol()
+
+# gmmm
