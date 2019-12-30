@@ -152,13 +152,13 @@ def war_google():
                 time_search = re.search('(\d{2}) (.*) 10(..).*Результаты сражений:', soup)
                 if time_search:
                     try:
-                        data1.insert_row(soup, 3)
+                        data1.insert_row([soup], 3)
                         data1.update_cell(1, 1, bitva_id)
                     except:
                         creds1 = ServiceAccountCredentials.from_json_keyfile_name('bitvo1.json', scope)
                         client1 = gspread.authorize(creds1)
                         data1 = client1.open('Digest').worksheet('main')
-                        data1.insert_row(soup, 3)
+                        data1.insert_row([soup], 3)
                         data1.update_cell(1, 1, bitva_id)
                     sleep(5)
                     printext += ' Добавил битву в google'
