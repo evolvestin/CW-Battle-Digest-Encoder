@@ -147,7 +147,7 @@ def war_google():
             global bitva_id
             printext = 'https://t.me/ChatWarsDigest/' + str(bitva_id)
             if str(bitva_id) not in ignore:
-                text = requests.get(printext)
+                text = requests.get(printext + '?embed=1')
                 soup = former(text, bitva_id)
                 time_search = re.search('(\d{2}) (.*) 10(..).*Результаты сражений:', soup)
                 if time_search:
@@ -184,7 +184,7 @@ def war_checker():
             global checker
             printext = 'https://t.me/ChatWarsDigest/' + str(checker)
             if str(checker) not in ignore:
-                text = requests.get(printext)
+                text = requests.get(printext + '?embed=1')
                 soup = former(text, checker)
                 time_search = re.search('(\d{2}) (.*) 10(..).*Результаты сражений:', soup)
                 if time_search:
