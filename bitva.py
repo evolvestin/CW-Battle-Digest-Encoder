@@ -1,19 +1,20 @@
 # -*- coding: utf-8 -*-
-import gspread
-from oauth2client.service_account import ServiceAccountCredentials
-import telebot
-from telebot import types
-import urllib3
 import re
-import requests
-import time
-from time import sleep
-import datetime
-from datetime import datetime
+import sys
 import _thread
-import random
+import gspread
+import telebot
+import datetime
+import requests
+import traceback
+from time import sleep
 from SQL import SQLighter
+from bs4 import BeautifulSoup
+from datetime import datetime
+from collections import defaultdict
+from oauth2client.service_account import ServiceAccountCredentials
 
+stamp1 = int(datetime.now().timestamp())
 scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
 creds1 = ServiceAccountCredentials.from_json_keyfile_name('bitvo1.json', scope)
 creds3 = ServiceAccountCredentials.from_json_keyfile_name('bitvo3.json', scope)
@@ -32,11 +33,11 @@ finite = int(data5.cell(2, 3).value)
 
 bot = telebot.TeleBot('733988805:AAGi7yK8wziPgkn25R8a86XbPUlFwLSbBBE')
 idMe = 396978030
-checker = 641
-bitva_ru = int(data1.cell(1, 1).value)
-ignore_ru = str(data5.cell(2, 1).value)
+checker = 4
+bitva_id = int(data1.cell(1, 1).value)
+ignore = str(data5.cell(2, 1).value)
 our_month = int(data5.cell(1, 2).value)
-ignore_ru = ignore_ru.split('/')
+ignore = ignore.split('/')
 castle = '(🖤|🍆|🐢|🌹|🍁|☘️|🦇)'
 castle_db = ['🖤', '🍆', '🐢', '🌹', '🍁', '☘️', '🦇']
 castle_names = ['skala', 'farm', 'tort', 'rose', 'amber', 'oplot', 'night']
@@ -60,10 +61,17 @@ form_b = '🏆Очки:\n' \
     + 'Битва (.+)'
 
 # ====================================================================================
-bot.send_message(idMe, '👀')
 
 
-def big_time(stamp):
+def bold(txt):
+    return '<b>' + txt + '</b>'
+
+
+def code(txt):
+    return '<code>' + txt + '</code>'
+
+
+def logtime(stamp):
     day = datetime.utcfromtimestamp(int(stamp)).strftime('%d')
     month = datetime.utcfromtimestamp(int(stamp)).strftime('%m')
     year = datetime.utcfromtimestamp(int(stamp)).strftime('%Y')
@@ -75,100 +83,109 @@ def big_time(stamp):
     return data
 
 
-def bitva_cw3():
+logfile_start = open('log.txt', 'w')
+logfile_start.write('Начало записи лога ' + re.sub('<.*?>', '', logtime(0)))
+logfile_start.close()
+# ====================================================================================
+start_message = bot.send_message(idMe, code(logtime(stamp1) + '\n' + logtime(0)), parse_mode='HTML')
+
+
+def executive(new):
+    global thread_array
+    search = re.search('<function (\S+)', str(new))
+    if search:
+        name = search.group(1)
+    else:
+        name = ''
+    exc_type, exc_value, exc_traceback = sys.exc_info()
+    error_raw = traceback.format_exception(exc_type, exc_value, exc_traceback)
+    error = ''
+    for i in error_raw:
+        error += str(i)
+    bot.send_message(idMe, 'Вылет ' + name + '\n' + error)
+    sleep(100)
+    thread_id = _thread.start_new_thread(new, ())
+    thread_array[thread_id] = defaultdict(dict)
+    thread_array[thread_id]['name'] = name
+    thread_array[thread_id]['function'] = new
+    bot.send_message(idMe, 'Запущен ' + bold(name), parse_mode='HTML')
+    sleep(30)
+    _thread.exit()
+
+
+def printer(printer_text):
+    thread_name = str(thread_array[_thread.get_ident()]['name'])
+    logfile = open('log.txt', 'a')
+    log_print_text = thread_name + ' ' + printer_text
+    logfile.write('\n' + re.sub('<.*?>', '', logtime(0)) + log_print_text)
+    logfile.close()
+    print(log_print_text)
+
+
+def former(text, id):
+    soup = BeautifulSoup(text.text, 'html.parser')
+    is_post_not_exist = str(soup.find('div', class_='tgme_widget_message_error'))
+    if str(is_post_not_exist) == 'None':
+        brief = str(soup.find('div', class_='tgme_widget_message_text js-message_text'))
+        brief = re.sub(' (dir|class|style)=\\"\w+[^\\"]+\\"', '', brief)
+        brief = re.sub('(<b>|</b>|<i>|</i>|<div>|</div>)', '', brief)
+        brief = re.sub('/', '&#47;', brief)
+        brief = re.sub('(<br&#47;>)', '/', brief)
+        brief = str(id) + '/' + brief
+    else:
+        brief = 'false'
+    return brief
+
+
+def war_google():
     while True:
         try:
-            sleep(5)
+            sleep(1)
             global data1
-            global bitva_ru
-            goo = []
-            if str(bitva_ru) not in ignore_ru:
-                text = requests.get('https://t.me/CWDigest/' + str(bitva_ru))
-                search1 = re.search(form_a, str(text.text))
-                search2 = re.search(form_b, str(text.text))
-                if search1:
-                    print('работаю https://t.me/CWDigest/' + str(bitva_ru))
-                    bitva = str(int(time.mktime(datetime.strptime(search2.group(15), '%d/%m/%y %H:%M').timetuple())))
-                    hours_btv = int(datetime.utcfromtimestamp(int(bitva)).strftime('%H'))
-                    if hours_btv == 6 or hours_btv == 14 or hours_btv == 22:
-                        bitva = str(int(bitva) + 3 * 60 * 60)
-                    for i in search1.groups():
-                        if i in castle and i != '':
-                            points = '+0'
-                            for g in search1.groups():
-                                if g == i:
-                                    points = search2.group(search2.groups().index(g) + 2)
-                            gold = search1.group(search1.groups().index(i) + 3)
-                            box = search1.group(search1.groups().index(i) + 4)
-                            if gold != '😴':
-                                gold = re.sub('💰', '', gold)
-                            else:
-                                gold = '+0'
-                            if box != '':
-                                box = re.sub('📦', '', box)
-                            else:
-                                box = '+0'
-                            bitva = bitva + '/' + search1.group(search1.groups().index(i) + 1) + '.' + \
-                                    search1.group(search1.groups().index(i) + 2) + '.' + gold + '.' + box + '.' + points
-                    bitva = re.sub('🏆Очки:', '+0', bitva)
-                    goo.append(str(bitva))
-                    bitva_ru = bitva_ru + 1
+            global bitva_id
+            printext = 'https://t.me/ChatWarsDigest/' + str(bitva_id)
+            if str(bitva_id) not in ignore:
+                text = requests.get(printext)
+                soup = former(text, bitva_id)
+                time_search = re.search('(\d{2}) (.*) 10(..).*Результаты сражений:', soup)
+                if time_search:
                     try:
-                        data1.insert_row(goo, 2)
-                        data1.update_cell(1, 1, bitva_ru)
+                        data1.insert_row(soup, 3)
+                        data1.update_cell(1, 1, bitva_id)
                     except:
                         creds1 = ServiceAccountCredentials.from_json_keyfile_name('bitvo1.json', scope)
                         client1 = gspread.authorize(creds1)
                         data1 = client1.open('Digest').worksheet('main')
-                        data1.insert_row(goo, 2)
-                        data1.update_cell(1, 1, bitva_ru)
+                        data1.insert_row(soup, 3)
+                        data1.update_cell(1, 1, bitva_id)
+                    sleep(5)
+                    printext += ' Добавил битву в google'
+                    bitva_id += 1
+                elif soup == 'false':
+                    printext += ' Ничего нет, ничего не делаю'
                 else:
-                    print('https://t.me/CWDigest/' + str(bitva_ru) + ' Битвы пока нет, ничего не делаю')
+                    printext += ' Это не битва, пропускаю'
+                    bitva_id += 1
             else:
-                print('https://t.me/CWDigest/' + str(bitva_ru) + ' В черном списке, пропускаю')
-                bitva_ru = bitva_ru + 1
-
-        except Exception as e:
-            bot.send_message(idMe, str(e))
-            bot.send_message(idMe, 'вылет bitva_ru')
-            sleep(0.9)
+                printext += ' В черном списке, пропускаю'
+                bitva_id += 1
+            printer(printext)
+        except IndexError:
+            executive(war_google)
 
 
-def bitva_cw3_checker():
+def war_checker():
     while True:
         try:
-            sleep(20)
+            sleep(8)
             global data3
             global checker
-            if str(checker) not in ignore_ru:
-                text = requests.get('https://t.me/CWDigest/' + str(checker))
-                search1 = re.search(form_a, str(text.text))
-                search2 = re.search(form_b, str(text.text))
-                if search1:
-                    print('проверяю https://t.me/CWDigest/' + str(checker))
-                    bitva = str(int(time.mktime(datetime.strptime(search2.group(15), '%d/%m/%y %H:%M').timetuple())))
-                    hours_btv = int(datetime.utcfromtimestamp(int(bitva)).strftime('%H'))
-                    if hours_btv == 6 or hours_btv == 14 or hours_btv == 22:
-                        bitva = str(int(bitva) + 3 * 60 * 60)
-                    for i in search1.groups():
-                        if i in castle and i != '':
-                            points = '+0'
-                            for g in search1.groups():
-                                if g == i:
-                                    points = search2.group(search2.groups().index(g) + 2)
-                            gold = search1.group(search1.groups().index(i) + 3)
-                            box = search1.group(search1.groups().index(i) + 4)
-                            if gold != '😴':
-                                gold = re.sub('💰', '', gold)
-                            else:
-                                gold = '+0'
-                            if box != '':
-                                box = re.sub('📦', '', box)
-                            else:
-                                box = '+0'
-                            bitva = bitva + '/' + search1.group(search1.groups().index(i) + 1) + '.' + \
-                                    search1.group(search1.groups().index(i) + 2) + '.' + gold + '.' + box + '.' + points
-                    bitva = re.sub('🏆Очки:', '+0', bitva)
+            printext = 'https://t.me/ChatWarsDigest/' + str(checker)
+            if str(checker) not in ignore:
+                text = requests.get(printext)
+                soup = former(text, checker)
+                time_search = re.search('(\d{2}) (.*) 10(..).*Результаты сражений:', soup)
+                if time_search:
                     try:
                         google = data3.col_values(1)
                     except:
@@ -176,20 +193,23 @@ def bitva_cw3_checker():
                         client3 = gspread.authorize(creds3)
                         data3 = client3.open('Digest').worksheet('main')
                         google = data3.col_values(1)
-                    checker = checker + 1
-                    if bitva not in google:
-                        bot.send_message(idMe, 'Привет\nhttps://t.me/CWDigest/' + str(checker - 1) +
-                                         '\n\n' + str(bitva) + '\n\nЭтой битвы нет, в базе, проверь')
+                    if soup not in google:
+                        bot.send_message(idMe, 'Привет\n' + printext + '\n\n' + str(soup) +
+                                         '\n\nЭтой битвы нет, в базе, проверь')
+                    printext += ' Проверил'
+                    checker += 1
+                elif soup == 'false':
+                    printext += ' Ничего нет, ничего не делаю'
+                    sleep(20)
                 else:
-                    print('https://t.me/CWDigest/' + str(checker) + ' прошел все, нареканий нет')
+                    printext += ' Это не битва, пропускаю'
+                    checker += 1
             else:
-                print('проверка https://t.me/CWDigest/' + str(checker) + ' В черном списке, пропускаю')
-                checker = checker + 1
-
-        except Exception as e:
-            bot.send_message(idMe, str(e))
-            bot.send_message(idMe, 'вылет bitva_ru_checker')
-            sleep(0.9)
+                printext += ' В черном списке, пропускаю'
+                checker += 1
+            printer(printext)
+        except IndexError:
+            executive(war_checker)
 
 
 def summary_ru():
@@ -199,7 +219,7 @@ def summary_ru():
             global data5
             global start
             global finite
-            sleep(300)
+            sleep(30)
             db = SQLighter('actives.db')
             first_times = 0
             last_times = 0
@@ -272,8 +292,8 @@ def summary_ru():
 
             if last_times > 0:
                 paper = db.get_paper()
-                fi = big_time(first_times)
-                la = big_time(last_times)
+                fi = logtime(first_times)
+                la = logtime(last_times)
                 text = '<b>Отчет за неделю</b> (' + fi + ' - ' + la + ')\n'
                 for i in paper:
                     name = castle_db[castle_names.index(i[0])]
@@ -323,6 +343,7 @@ def summary_ru():
                     data5 = client5.open('Digest').worksheet('sup')
                     data5.update_cell(2, 2, start)
                     data5.update_cell(2, 3, finite)
+            sleep(500)
         except Exception as e:
             bot.send_message(idMe, 'вылет summary_ru\n' + str(e))
             sleep(0.9)
@@ -414,8 +435,8 @@ def month():
 
             if posting > our_month:
                 paper = db.get_paper()
-                fi = big_time(first_times)
-                la = big_time(last_times)
+                fi = logtime(first_times)
+                la = logtime(last_times)
                 text = '<b>Отчет за месяц</b> (' + fi + ' - ' + la + ')\n'
                 for i in paper:
                     name = castle_db[castle_names.index(i[0])]
@@ -481,17 +502,29 @@ def double_checker():
                     bot.send_message(idMe, 'Элемент\n\n' + str(i) + '\n\nповторяется в базе '
                                      + str(google.count(i)) + ' раз.\nНа данный момент он находится на позиции '
                                      + str(google.index(i)) + ' в массиве')
-        except Exception as e:
-            bot.send_message(idMe, 'double_checker\n' + str(e))
-            sleep(0.9)
+        except IndexError:
+            executive(double_checker)
 
 
 @bot.message_handler(func=lambda message: message.text)
 def repeat_all_messages(message):
     if message.chat.id != idMe:
-        bot.send_message(idMe, 'К тебе этот бот не имеет отношения, уйди пожалуйста')
+        bot.send_message(message.chat.id, 'К тебе этот бот не имеет отношения, уйди пожалуйста')
     else:
-        bot.send_message(idMe, 'Я работаю')
+        if message.text.startswith('/base'):
+            modified = re.sub('/base_', '', message.text)
+            if modified.startswith('n'):
+                doc = open('actives.db', 'rb')
+                bot.send_document(idMe, doc)
+            elif modified.startswith('o'):
+                doc = open('actives2.db', 'rb')
+                bot.send_document(idMe, doc)
+            else:
+                doc = open('log.txt', 'rt')
+                bot.send_document(idMe, doc)
+            doc.close()
+        else:
+            bot.send_message(message.chat.id, 'Я работаю')
 
 
 def telepol():
@@ -504,11 +537,12 @@ def telepol():
 
 
 if __name__ == '__main__':
-    _thread.start_new_thread(bitva_cw3, ())
-    _thread.start_new_thread(summary_ru, ())
-    _thread.start_new_thread(bitva_cw3_checker, ())
-    _thread.start_new_thread(month, ())
-    _thread.start_new_thread(double_checker, ())
+    gain = [war_google, war_checker, double_checker]
+    thread_array = defaultdict(dict)
+    for i in gain:
+        thread_id = _thread.start_new_thread(i, ())
+        thread_start_name = re.findall('<.+?\s(.+?)\s.*>', str(i))
+        thread_array[thread_id] = defaultdict(dict)
+        thread_array[thread_id]['name'] = thread_start_name[0]
+        thread_array[thread_id]['function'] = i
     telepol()
-
-# gmmm
