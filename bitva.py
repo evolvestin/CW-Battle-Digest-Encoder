@@ -27,7 +27,7 @@ client5 = gspread.authorize(creds5)
 data1 = client1.open('Digest').worksheet('main')
 data3 = client3.open('Digest').worksheet('main')
 data4 = client4.open('Digest').worksheet('main')
-data5 = client5.open('Digest').worksheet('sup')
+data5 = client5.open('Digest').worksheet('main')
 start = int(data5.cell(2, 2).value)
 finite = int(data5.cell(2, 3).value)
 
