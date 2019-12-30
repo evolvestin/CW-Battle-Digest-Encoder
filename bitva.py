@@ -28,14 +28,14 @@ data1 = client1.open('Digest').worksheet('main')
 data3 = client3.open('Digest').worksheet('main')
 data4 = client4.open('Digest').worksheet('main')
 data5 = client5.open('Digest').worksheet('main')
-start = int(data5.cell(2, 2).value)
-finite = int(data5.cell(2, 3).value)
+start = int(data5.cell(1, 2).value)
+finite = int(data5.cell(1, 3).value)
 
 bot = telebot.TeleBot('733988805:AAGi7yK8wziPgkn25R8a86XbPUlFwLSbBBE')
 idMe = 396978030
 checker = 4
 bitva_id = int(data1.cell(1, 1).value)
-ignore = str(data5.cell(2, 1).value)
+ignore = str(data5.cell(1, 2).value)
 our_month = int(data5.cell(1, 2).value)
 ignore = ignore.split('/')
 castle = '(🖤|🍆|🐢|🌹|🍁|☘️|🦇)'
