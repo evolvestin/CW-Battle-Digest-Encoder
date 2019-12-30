@@ -72,15 +72,17 @@ def code(txt):
 
 
 def logtime(stamp):
-    day = datetime.utcfromtimestamp(int(stamp)).strftime('%d')
-    month = datetime.utcfromtimestamp(int(stamp)).strftime('%m')
-    year = datetime.utcfromtimestamp(int(stamp)).strftime('%Y')
-    hours = datetime.utcfromtimestamp(int(stamp)).strftime('%H')
+    if stamp == 0:
+        stamp = int(datetime.now().timestamp())
+    day = datetime.utcfromtimestamp(int(stamp + 3 * 60 * 60)).strftime('%d')
+    month = datetime.utcfromtimestamp(int(stamp + 3 * 60 * 60)).strftime('%m')
+    year = datetime.utcfromtimestamp(int(stamp + 3 * 60 * 60)).strftime('%Y')
+    hours = datetime.utcfromtimestamp(int(stamp + 3 * 60 * 60)).strftime('%H')
     minutes = datetime.utcfromtimestamp(int(stamp)).strftime('%M')
     seconds = datetime.utcfromtimestamp(int(stamp)).strftime('%S')
-    data = '<code>' + str(day) + '.' + str(month) + '.' + str(year) + \
-           ' ' + str(hours) + ':' + str(minutes) + ':' + str(seconds) + '</code>'
-    return data
+    message = str(day) + '.' + str(month) + '.' + str(year) + ' ' + str(hours) + ':' \
+        + str(minutes) + ':' + str(seconds)
+    return message
 
 
 logfile_start = open('log.txt', 'w')
