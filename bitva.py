@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import re
 import sys
+import time
 import _thread
 import gspread
 import telebot
@@ -17,48 +18,32 @@ from oauth2client.service_account import ServiceAccountCredentials
 stamp1 = int(datetime.now().timestamp())
 scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
 creds1 = ServiceAccountCredentials.from_json_keyfile_name('bitvo1.json', scope)
+creds2 = ServiceAccountCredentials.from_json_keyfile_name('bitvo2.json', scope)
 creds3 = ServiceAccountCredentials.from_json_keyfile_name('bitvo3.json', scope)
-creds4 = ServiceAccountCredentials.from_json_keyfile_name('bitvo4.json', scope)
-creds5 = ServiceAccountCredentials.from_json_keyfile_name('bitvo5.json', scope)
 client1 = gspread.authorize(creds1)
+client2 = gspread.authorize(creds2)
 client3 = gspread.authorize(creds3)
-client4 = gspread.authorize(creds4)
-client5 = gspread.authorize(creds5)
 data1 = client1.open('Digest').worksheet('main')
+data2 = client2.open('Digest').worksheet('main')
 data3 = client3.open('Digest').worksheet('main')
-data4 = client4.open('Digest').worksheet('main')
-data5 = client5.open('Digest').worksheet('main')
-start = int(data5.cell(2, 1).value)
-finite = int(data5.cell(2, 1).value)
-
-bot = telebot.TeleBot('733988805:AAGi7yK8wziPgkn25R8a86XbPUlFwLSbBBE')
-idMe = 396978030
 checker = 4
+idMe = 396978030
+e_trident = '🔱'
 bitva_id = int(data1.cell(1, 1).value)
-ignore = str(data5.cell(2, 1).value)
-our_month = int(data5.cell(1, 1).value)
+ignore = str(data1.cell(2, 1).value)
 ignore = ignore.split('/')
 castle = '(🖤|🍆|🐢|🌹|🍁|☘️|🦇)'
-castle_db = ['🖤', '🍆', '🐢', '🌹', '🍁', '☘️', '🦇']
-castle_names = ['skala', 'farm', 'tort', 'rose', 'amber', 'oplot', 'night']
-form_a = '⛳️Сводки с полей:\n' \
-    + castle + ': (\S+) (\S*)\s*(\-*.*)\n' \
-    + castle + ': (\S+) (\S*)\s*(\-*.*)\n' \
-    + castle + ': (\S+) (\S*)\s*(\-*.*)\n' \
-    + castle + ': (\S+) (\S*)\s*(\-*.*)\n' \
-    + castle + ': (\S+) (\S*)\s*(\-*.*)\n' \
-    + castle + ': (\S+) (\S*)\s*(\-*.*)\n' \
-    + castle + ': (\S+) (\S*)\s*(\-*.*)\n'
+castle_list = ['🖤', '🍆', '🐢', '🌹', '🍁', '☘️', '🦇']
+character = {
+    'со значительным преимуществом': '⚔😎',
+    'успешно атаковали защитников': '⚔',
+    'разыгралась настоящая бойня, но все-таки силы атакующих были ': '⚔⚡',
+    'успешно отбились от': '🛡',
+    'легко отбились от': '🛡👌',
+    'героически отразили ': '🛡⚡',
+    'скучали, на них ': '🛡😴',
+}
 
-form_b = '🏆Очки:\n' \
-    + castle + '.+: +(.+)\n' \
-    + castle + '.+: +(.+)\n' \
-    + castle + '.+: +(.+)\n' \
-    + castle + '.+: +(.+)\n' \
-    + castle + '.+: +(.+)\n' \
-    + castle + '.+: +(.+)\n' \
-    + castle + '.+: +(.+)\n\n' \
-    + 'Битва (.+)'
 
 # ====================================================================================
 
@@ -69,6 +54,14 @@ def bold(txt):
 
 def code(txt):
     return '<code>' + txt + '</code>'
+
+
+def stamper(date, adder):
+    try:
+        stamp = int(time.mktime(datetime.strptime(date, '%d.%m.%Y').timetuple()) + adder)
+    except:
+        stamp = False
+    return stamp
 
 
 def logtime(stamp):
@@ -89,10 +82,11 @@ logfile_start = open('log.txt', 'w')
 logfile_start.write('Начало записи лога ' + re.sub('<.*?>', '', logtime(0)))
 logfile_start.close()
 # ====================================================================================
+bot = telebot.TeleBot('733988805:AAGi7yK8wziPgkn25R8a86XbPUlFwLSbBBE')
 start_message = bot.send_message(idMe, code(logtime(stamp1) + '\n' + logtime(0)), parse_mode='HTML')
 
 
-def executive(new):
+def executive(new, logs):
     global thread_array
     search = re.search('<function (\S+)', str(new))
     if search:
@@ -105,14 +99,15 @@ def executive(new):
     for i in error_raw:
         error += str(i)
     bot.send_message(idMe, 'Вылет ' + name + '\n' + error)
-    sleep(100)
-    thread_id = _thread.start_new_thread(new, ())
-    thread_array[thread_id] = defaultdict(dict)
-    thread_array[thread_id]['name'] = name
-    thread_array[thread_id]['function'] = new
-    bot.send_message(idMe, 'Запущен ' + bold(name), parse_mode='HTML')
-    sleep(30)
-    _thread.exit()
+    if logs == 0:
+        sleep(100)
+        thread_id = _thread.start_new_thread(new, ())
+        thread_array[thread_id] = defaultdict(dict)
+        thread_array[thread_id]['name'] = name
+        thread_array[thread_id]['function'] = new
+        bot.send_message(idMe, 'Запущен ' + bold(name), parse_mode='HTML')
+        sleep(30)
+        _thread.exit()
 
 
 def printer(printer_text):
@@ -122,6 +117,83 @@ def printer(printer_text):
     logfile.write('\n' + re.sub('<.*?>', '', logtime(0)) + log_print_text)
     logfile.close()
     print(log_print_text)
+
+
+def timer(search):
+    s_day = int(search.group(1))
+    s_month = str(search.group(2))
+    s_year = int(search.group(3)) - 60
+    stamp = int(datetime.now().timestamp())
+    sec = ((stamp + (2 * 60 * 60) - 1530309600) * 3)
+    if s_month == 'Wintar':
+        month = 1
+    elif s_month == 'Hornung':
+        month = 2
+    elif s_month == 'Lenzin':
+        month = 3
+    elif s_month == 'Ōstar':
+        month = 4
+    elif s_month == 'Winni':
+        month = 5
+    elif s_month == 'Brāh':
+        month = 6
+    elif s_month == 'Hewi':
+        month = 7
+    elif s_month == 'Aran':
+        month = 8
+    elif s_month == 'Witu':
+        month = 9
+    elif s_month == 'Wīndume':
+        month = 10
+    elif s_month == 'Herbist':
+        month = 11
+    elif s_month == 'Hailag':
+        month = 12
+    else:
+        month = 0
+
+    if month != 0:
+        day31 = 31 * 24 * 60 * 60
+        day30 = 30 * 24 * 60 * 60
+        day28 = 28 * 24 * 60 * 60
+        seconds = 0 - (24 * 60 * 60)
+        if s_year == 4:
+            day28 = day28 + 24 * 60 * 60
+        elif s_year > 4:
+            seconds = seconds + 24 * 60 * 60
+        seconds = seconds + day30 + day31 + 31536000 * (s_year - 1)  # Wīndume
+        if month == 1:
+            seconds = seconds
+        elif month == 2:
+            seconds = seconds + day31
+        elif month == 3:
+            seconds = seconds + day31 + day28
+        elif month == 4:
+            seconds = seconds + day31 + day28 + day31
+        elif month == 5:
+            seconds = seconds + day31 + day28 + day31 + day30
+        elif month == 6:
+            seconds = seconds + day31 + day28 + day31 + day30 + day31
+        elif month == 7:
+            seconds = seconds + day31 + day28 + day31 + day30 + day31 + day30
+        elif month == 8:
+            seconds = seconds + day31 + day28 + day31 + day30 + day31 + day30 + day31
+        elif month == 9:
+            seconds = seconds + day31 + day28 + day31 + day30 + day31 + day30 + day31 + day31
+        elif month == 10:
+            seconds = seconds + day31 + day28 + day31 + day30 + day31 + day30 + day31 + day31 + day30
+        elif month == 11:
+            seconds = seconds + day31 + day28 + day31 + day30 + day31 + day30 + day31 + day31 + day30 + day31
+            if s_year == 0:
+                seconds = 0 - (24 * 60 * 60)
+        elif month == 12:
+            seconds = seconds + day31 + day28 + day31 + day30 + day31 + day30 + day31 + day31 + day30 + day31 + day30
+            if s_year == 0:
+                seconds = day30 - (24 * 60 * 60)
+
+        seconds = seconds + s_day * 24 * 60 * 60
+        stack = int(stamp + (seconds - sec) / 3) + 2 * 60 * 60
+        return stack
 
 
 def former(text, id):
@@ -153,13 +225,13 @@ def war_google():
                 if time_search:
                     try:
                         data1.insert_row([soup], 3)
-                        data1.update_cell(1, 1, bitva_id)
+                        data1.update_cell(1, 1, bitva_id + 1)
                     except:
                         creds1 = ServiceAccountCredentials.from_json_keyfile_name('bitvo1.json', scope)
                         client1 = gspread.authorize(creds1)
                         data1 = client1.open('Digest').worksheet('main')
                         data1.insert_row([soup], 3)
-                        data1.update_cell(1, 1, bitva_id)
+                        data1.update_cell(1, 1, bitva_id + 1)
                     sleep(5)
                     printext += ' Добавил битву в google'
                     bitva_id += 1
@@ -173,7 +245,7 @@ def war_google():
                 bitva_id += 1
             printer(printext)
         except IndexError:
-            executive(war_google)
+            executive(war_google, 0)
 
 
 def war_checker():
@@ -211,322 +283,144 @@ def war_checker():
                 checker += 1
             printer(printext)
         except IndexError:
-            executive(war_checker)
+            executive(war_checker, 0)
 
 
-def summary_ru():
-    while True:
-        try:
-            global data3
-            global data5
-            global start
-            global finite
-            sleep(30)
-            db = SQLighter('actives.db')
-            first_times = 0
-            last_times = 0
-            try:
-                google = data3.col_values(1)
-            except:
-                creds3 = ServiceAccountCredentials.from_json_keyfile_name('bitvo3.json', scope)
-                client3 = gspread.authorize(creds3)
-                data3 = client3.open('Digest').worksheet('main')
-                google = data3.col_values(1)
-            google.pop(0)
-            google.reverse()
-            for i in castle_names:
-                db.update_castle(i, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
-            for i in google:
-                bitva = i.split('/')
-                if int(bitva[0]) >= start and int(bitva[0]) <= finite:
-                    if int(bitva[0]) == start:
-                        first_times = int(bitva[0])
-                    if int(bitva[0]) == finite:
-                        last_times = int(bitva[0])
-                    bitva.pop(0)
-                    for h in bitva:
-                        splited = h.split('.')
-                        name = castle_names[castle_db.index(splited[0])]
-                        castle_array = db.get_castle(name)
-                        gold = castle_array[1]
-                        box = castle_array[2]
-                        point = castle_array[3]
-                        atk = castle_array[4]
-                        atk_high = castle_array[5]
-                        atk_low = castle_array[6]
-                        deff = castle_array[7]
-                        def_high = castle_array[8]
-                        def_low = castle_array[9]
-                        def_ger = castle_array[10]
-                        sleeps = castle_array[11]
-                        if splited[2][:1] == '+':
-                            gold = gold + int(re.sub('\+', '', splited[2]))
-                        else:
-                            gold = gold - int(re.sub('-', '', splited[2]))
-                        if splited[3][:1] == '+':
-                            box = box + int(re.sub('\+', '', splited[3]))
-                        else:
-                            box = box - int(re.sub('-', '', splited[3]))
-                        if splited[4][:1] == '+':
-                            point = point + int(re.sub('\+', '', splited[4]))
-                        else:
-                            point = point - int(re.sub('-', '', splited[4]))
-                        if splited[1] == '⚔️':
-                            atk = atk + 1
-                        elif splited[1] == '⚔️😎':
-                            atk_high = atk_high + 1
-                        elif splited[1] == '⚔️⚡️':
-                            atk_low = atk_low + 1
-                        elif splited[1] == '🛡':
-                            deff = deff + 1
-                        elif splited[1] == '🛡⚡️':
-                            def_high = def_high + 1
-                        elif splited[1] == '🛡👌':
-                            def_low = def_low + 1
-                        elif splited[1] == '🔱🛡⚡️':
-                            def_ger = def_ger + 1
-                        elif splited[1] == '😴️':
-                            sleeps = sleeps + 1
-                        else:
-                            print(splited[1])
-                        db.update_castle(name, gold, box, point, atk, atk_high, atk_low, deff, def_high, def_low,
-                                         def_ger, sleeps)
+def summary(time_start, time_end):
+    global data2
+    try:
+        google = data2.col_values(1)
+    except:
+        creds2 = ServiceAccountCredentials.from_json_keyfile_name('bitvo2.json', scope)
+        client2 = gspread.authorize(creds2)
+        data2 = client2.open('Digest').worksheet('main')
+        google = data2.col_values(1)
+    google.pop(0)
+    google.pop(0)
+    castle_db = {}
+    for i in castle_list:
+        castle_db[i] = defaultdict(dict)
+        castle_db[i]['money'] = 0
+        castle_db[i]['box'] = 0
+        castle_db[i]['trophy'] = 0
+        castle_db[i]['🔱'] = 0
+        for mini in character:
+            castle_db[i][character.get(mini)] = 0
+    for battle in google:
+        trophy_search = re.search('По итогам сражений замкам начислено:/(.*)', battle)
+        time_search = re.search('(\d{2}) (.*) 10(..).*Результаты сражений:', battle)
+        soup = re.sub('.*Результаты сражений:/', '', battle)
+        soup = re.sub('//По итогам сражений замкам начислено:.+', '', soup)
+        splited = re.split('//', soup)
+        if time_search:
+            date = timer(time_search)
+            if time_start <= date <= time_end:
+                if trophy_search:
+                    trophy = re.split('/', trophy_search.group(1))
+                    for i in trophy:
+                        search = re.search(castle + '.+ \+(\d+) 🏆 очков', i)
+                        if search:
+                            castle_db[search.group(1)]['trophy'] += int(search.group(2))
+                for string in splited:
+                    search = re.search(castle, string)
+                    if search:
+                        for m in character:
+                            if m in string:
+                                mini = character.get(m)
+                                if e_trident in string:
+                                    mini = e_trident
+                                castle_db[search.group(1)][mini] += 1
+                                break
 
-            if last_times > 0:
-                paper = db.get_paper()
-                fi = logtime(first_times)
-                la = logtime(last_times)
-                text = '<b>Отчет за неделю</b> (' + fi + ' - ' + la + ')\n'
-                for i in paper:
-                    name = castle_db[castle_names.index(i[0])]
-                    text = text + name + ': '
-                    if i[1] >= 0:
-                        text = text + '+' + str(i[1]) + '💰 '
-                    else:
-                        text = text + str(i[1]) + '💰 '
-                    if i[2] >= 0:
-                        text = text + '+' + str(i[2]) + '📦 '
-                    else:
-                        text = text + str(i[2]) + '📦 '
-                    if i[3] >= 0:
-                        text = text + '+' + str(i[3]) + '🏆 \n'
-                    else:
-                        text = text + str(i[3]) + '🏆 \n'
-                    text = text + '⚔️<code>:' + str(i[4]) + '</code>'
-                    if i[5] > 0:
-                        text = text + '<code>|⚔️😎:' + str(i[5]) + '</code>'
-                    if i[6] > 0:
-                        text = text + '<code>|⚔️⚡️:' + str(i[6]) + '</code>'
-                    if i[7] > 0:
-                        text = text + '<code>|🛡:' + str(i[7]) + '</code>'
-                    if i[8] > 0:
-                        text = text + '<code>|🛡⚡:' + str(i[8]) + '</code>'
-                    # if i[9] > 0:
-                    # text = text + '<code>|🛡👌️:' + str(i[9]) + '</code>'
-                    if i[10] > 0:
-                        text = text + '<code>|🔱️:' + str(i[10]) + '</code>'
-                    if i[11] > 0:
-                        text = text + '<code>|😴:' + str(i[11]) + '</code>'
+                        money_search = re.search('.*(на|отобрали) (.*?) золотых монет', string)
+                        if money_search:
+                            if money_search.group(1) == 'на':
+                                sign = '-'
+                            else:
+                                sign = '+'
+                            castle_db[search.group(1)]['money'] += int(sign + money_search.group(2))
 
-                    text = text + '\n'
-                #bot.send_message(idMe, text, parse_mode='HTML')
-                bot.send_message(-1001444070646, text, parse_mode='HTML')
-                start = finite + (8 * 60 * 60)
-                finite = finite + (7 * 24 * 60 * 60) #- (8 * 60 * 60)
-                try:
-                    data5.update_cell(2, 2, start)
-                    data5.update_cell(2, 3, finite)
-                except:
-                    creds3 = ServiceAccountCredentials.from_json_keyfile_name('bitvo3.json', scope)
-                    creds5 = ServiceAccountCredentials.from_json_keyfile_name('bitvo5.json', scope)
-                    client3 = gspread.authorize(creds3)
-                    client5 = gspread.authorize(creds5)
-                    data3 = client3.open('Digest').worksheet('main')
-                    data5 = client5.open('Digest').worksheet('sup')
-                    data5.update_cell(2, 2, start)
-                    data5.update_cell(2, 3, finite)
-            sleep(500)
-        except Exception as e:
-            bot.send_message(idMe, 'вылет summary_ru\n' + str(e))
-            sleep(0.9)
-
-
-def month():
-    while True:
-        try:
-            global data3
-            global data5
-            global bitva_ru
-            sleep(300)
-            db = SQLighter('actives2.db')
-            first_times = 0
-            last_times = 0
-            try:
-                google = data3.col_values(1)
-            except:
-                creds3 = ServiceAccountCredentials.from_json_keyfile_name('bitvo3.json', scope)
-                client3 = gspread.authorize(creds3)
-                data3 = client3.open('Digest').worksheet('main')
-                google = data3.col_values(1)
-            google.pop(0)
-            google.reverse()
-            for i in castle_names:
-                db.update_castle(i, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
-            m = 0
-            for i in google:
-                bitva = i.split('/')
-                month = int(datetime.utcfromtimestamp(int(bitva[0])).strftime('%m'))
-                if month == our_month:
-                    if m == 0:
-                        first_times = int(bitva[0])
-                        m = 1
-                    if int(bitva[0]) > last_times:
-                        last_times = int(bitva[0])
-                    bitva.pop(0)
-                    for h in bitva:
-                        splited = h.split('.')
-                        name = castle_names[castle_db.index(splited[0])]
-                        castle_array = db.get_castle(name)
-                        gold = castle_array[1]
-                        box = castle_array[2]
-                        point = castle_array[3]
-                        atk = castle_array[4]
-                        atk_high = castle_array[5]
-                        atk_low = castle_array[6]
-                        deff = castle_array[7]
-                        def_high = castle_array[8]
-                        def_low = castle_array[9]
-                        def_ger = castle_array[10]
-                        sleeps = castle_array[11]
-                        if splited[2][:1] == '+':
-                            gold = gold + int(re.sub('\+', '', splited[2]))
-                        else:
-                            gold = gold - int(re.sub('-', '', splited[2]))
-                        if splited[3][:1] == '+':
-                            box = box + int(re.sub('\+', '', splited[3]))
-                        else:
-                            box = box - int(re.sub('-', '', splited[3]))
-                        if splited[4][:1] == '+':
-                            point = point + int(re.sub('\+', '', splited[4]))
-                        else:
-                            point = point - int(re.sub('-', '', splited[4]))
-                        if splited[1] == '⚔️':
-                            atk = atk + 1
-                        elif splited[1] == '⚔️😎':
-                            atk_high = atk_high + 1
-                        elif splited[1] == '⚔️⚡️':
-                            atk_low = atk_low + 1
-                        elif splited[1] == '🛡':
-                            deff = deff + 1
-                        elif splited[1] == '🛡⚡️':
-                            def_high = def_high + 1
-                        elif splited[1] == '🛡👌':
-                            def_low = def_low + 1
-                        elif splited[1] == '🔱🛡⚡️':
-                            def_ger = def_ger + 1
-                        elif splited[1] == '😴️':
-                            sleeps = sleeps + 1
-                        else:
-                            print(splited[1])
-                        db.update_castle(name, gold, box, point, atk, atk_high, atk_low, deff, def_high, def_low,
-                                         def_ger, sleeps)
-
-            posting = int(datetime.utcfromtimestamp(int(last_times + 8 * 60 * 60)).strftime('%m'))
-            if posting == 1 and our_month == 12:
-                posting = 13
-
-            if posting > our_month:
-                paper = db.get_paper()
-                fi = logtime(first_times)
-                la = logtime(last_times)
-                text = '<b>Отчет за месяц</b> (' + fi + ' - ' + la + ')\n'
-                for i in paper:
-                    name = castle_db[castle_names.index(i[0])]
-                    text = text + name + ': '
-                    if i[1] >= 0:
-                        text = text + '+' + str(i[1]) + '💰 '
-                    else:
-                        text = text + str(i[1]) + '💰 '
-                    if i[2] >= 0:
-                        text = text + '+' + str(i[2]) + '📦 '
-                    else:
-                        text = text + str(i[2]) + '📦 '
-                    if i[3] >= 0:
-                        text = text + '+' + str(i[3]) + '🏆 \n'
-                    else:
-                        text = text + str(i[3]) + '🏆 \n'
-                    text = text + '⚔️<code>:' + str(i[4]) + '</code>'
-                    if i[5] > 0:
-                        text = text + '<code>|⚔️😎:' + str(i[5]) + '</code>'
-                    if i[6] > 0:
-                        text = text + '<code>|⚔️⚡️:' + str(i[6]) + '</code>'
-                    if i[7] > 0:
-                        text = text + '<code>|🛡:' + str(i[7]) + '</code>'
-                    if i[8] > 0:
-                        text = text + '<code>|🛡⚡:' + str(i[8]) + '</code>'
-                    # if i[9] > 0:
-                    # text = text + '<code>|🛡👌️:' + str(i[9]) + '</code>'
-                    if i[10] > 0:
-                        text = text + '<code>|🔱️:' + str(i[10]) + '</code>'
-                    if i[11] > 0:
-                        text = text + '<code>|😴:' + str(i[11]) + '</code>'
-                    text = text + '\n'
-                bot.send_message(-1001444070646, text, parse_mode='HTML')
-                if posting == 13:
-                    posting = 1
-                try:
-                    data5.update_cell(1, 2, int(posting))
-                except:
-                    creds5 = ServiceAccountCredentials.from_json_keyfile_name('bitvo5.json', scope)
-                    client5 = gspread.authorize(creds5)
-                    data5 = client5.open('Digest').worksheet('sup')
-                    data5.update_cell(1, 2, int(posting))
-
-        except Exception as e:
-            bot.send_message(idMe, 'вылет month\n' + str(e))
-            sleep(0.9)
+                        box_search = re.search('.*потеряно (.*?) складских ячеек', string)
+                        if box_search:
+                            castle_db[search.group(1)]['box'] += int(box_search.group(1))
+    castle_temp = []
+    listed = list(castle_db.items())
+    listed.sort(key=lambda arr: arr[1]['money'])
+    for i in listed:
+        castle_temp.append(i[0])
+    text = ''
+    for i in reversed(castle_temp):
+        array = castle_db.get(i)
+        text += i + ': '
+        if array['money'] >= 0:
+            text += '+' + str(array['money']) + '💰 '
+        else:
+            text += str(array['money']) + '💰 '
+        if array['box'] > 0:
+            text += '+' + str(array['box']) + '📦 '
+        elif array['box'] < 0:
+            text += str(array['box']) + '📦 '
+        if array['trophy'] >= 0:
+            text += '+' + str(array['trophy']) + '🏆 \n'
+        text += code('⚔:' + str(array['⚔']))
+        if array['⚔😎'] > 0:
+            text += code('|⚔😎:' + str(array['⚔😎']))
+        if array['⚔⚡'] > 0:
+            text += code('|⚔⚡:' + str(array['⚔⚡']))
+        if array['🛡'] > 0:
+            text += code('|🛡:' + str(array['🛡']))
+        if array['🛡⚡'] > 0:
+            text += code('|🛡⚡:' + str(array['🛡⚡']))
+        if array['🔱'] > 0:
+            text += code('|🔱:' + str(array['🔱']))
+        text += '\n'
+    return text
 
 
 def double_checker():
     while True:
         try:
             sleep(1800)
-            global data4
+            global data2
             try:
-                google = data4.col_values(1)
+                google = data2.col_values(1)
             except:
-                creds4 = ServiceAccountCredentials.from_json_keyfile_name('bitvo4.json', scope)
-                client4 = gspread.authorize(creds4)
-                data4 = client4.open('Digest').worksheet('main')
-                google = data4.col_values(1)
+                creds2 = ServiceAccountCredentials.from_json_keyfile_name('bitvo2.json', scope)
+                client2 = gspread.authorize(creds2)
+                data2 = client2.open('Digest').worksheet('main')
+                google = data2.col_values(1)
             for i in google:
                 if google.count(i) > 1:
                     bot.send_message(idMe, 'Элемент\n\n' + str(i) + '\n\nповторяется в базе '
                                      + str(google.count(i)) + ' раз.\nНа данный момент он находится на позиции '
                                      + str(google.index(i)) + ' в массиве')
         except IndexError:
-            executive(double_checker)
+            executive(double_checker, 0)
 
 
 @bot.message_handler(func=lambda message: message.text)
 def repeat_all_messages(message):
-    if message.chat.id != idMe:
-        bot.send_message(message.chat.id, 'К тебе этот бот не имеет отношения, уйди пожалуйста')
-    else:
-        if message.text.startswith('/base'):
-            modified = re.sub('/base_', '', message.text)
-            if modified.startswith('n'):
-                doc = open('actives.db', 'rb')
-                bot.send_document(idMe, doc)
-            elif modified.startswith('o'):
-                doc = open('actives2.db', 'rb')
-                bot.send_document(idMe, doc)
-            else:
+    try:
+        if message.text.startswith('/summary'):
+            modified = re.sub('/summary ', '', message.text)
+            search = re.search('(.*?)-(.*?)\n(.*)', modified)
+            if search:
+                starting = stamper(search.group(1), 0)
+                ending = stamper(search.group(2), 17 * 60 * 60)
+                text = search.group(3)
+                if str(starting) != 'False' and str(ending) != 'False':
+                    text += '\n(' + code(logtime(starting) + ' - ' + logtime(ending)) + ')\n'
+                    text += summary(starting, ending)
+                bot.send_message(message.chat.id, text, parse_mode='HTML')
+        elif message.chat.id == idMe:
+            if message.text.startswith('/base'):
                 doc = open('log.txt', 'rt')
                 bot.send_document(idMe, doc)
-            doc.close()
-        else:
-            bot.send_message(message.chat.id, 'Я работаю')
+                doc.close()
+            else:
+                bot.send_message(message.chat.id, 'Я работаю')
+    except IndexError:
+        executive(repeat_all_messages, 1)
 
 
 def telepol():
