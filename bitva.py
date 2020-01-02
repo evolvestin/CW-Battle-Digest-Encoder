@@ -287,6 +287,8 @@ def war_checker():
 
 
 def summary(time_start, time_end):
+    print('time_start = ' + str(time_start))
+    print('time_end = ' + str(time_end))
     global data2
     try:
         google = data2.col_values(1)
@@ -315,6 +317,7 @@ def summary(time_start, time_end):
         if time_search:
             date = timer(time_search)
             if time_start <= date <= time_end:
+                print('date = ' + str(date))
                 if trophy_search:
                     trophy = re.split('/', trophy_search.group(1))
                     for i in trophy:
