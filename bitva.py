@@ -5,11 +5,9 @@ import time
 import _thread
 import gspread
 import telebot
-import datetime
 import requests
 import traceback
 from time import sleep
-from SQL import SQLighter
 from bs4 import BeautifulSoup
 from datetime import datetime
 from collections import defaultdict
@@ -57,6 +55,7 @@ def code(txt):
 
 
 def stamper(date, adder):
+    import datetime
     try:
         stamp = int(datetime.datetime.strptime(date, "%d.%m.%Y").timestamp() + adder)
     except:
@@ -410,6 +409,8 @@ def repeat_all_messages(message):
             if search:
                 starting = stamper(search.group(1), 0)
                 ending = stamper(search.group(2), 17 * 60 * 60)
+                print(starting)
+                print(ending)
                 text = search.group(3)
                 if str(starting) != 'False' and str(ending) != 'False':
                     text += '\n(' + code(logtime(starting) + ' - ' + logtime(ending)) + ')\n'
