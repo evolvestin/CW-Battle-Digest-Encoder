@@ -123,7 +123,7 @@ def timer(search):
     s_month = str(search.group(2))
     s_year = int(search.group(3)) - 60
     stamp = int(datetime.now().timestamp())
-    sec = ((stamp + (3 * 60 * 60) - 1530309600) * 3)
+    sec = ((stamp + (2 * 60 * 60) - 1530309600) * 3)
     if s_month == 'Wintar':
         month = 1
     elif s_month == 'Hornung':
@@ -191,7 +191,7 @@ def timer(search):
                 seconds = day30 - (24 * 60 * 60)
 
         seconds = seconds + s_day * 24 * 60 * 60
-        stack = int(stamp + (seconds - sec) / 3) + 2 * 60 * 60
+        stack = int(stamp + (seconds - sec) / 3) + 5 * 60 * 60
         return stack
 
 
@@ -413,7 +413,7 @@ def repeat_all_messages(message):
                 print(ending)
                 text = search.group(3)
                 if str(starting) != 'False' and str(ending) != 'False':
-                    text += '\n(' + code(logtime(starting) + ' - ' + logtime(ending)) + ')\n'
+                    text += '\n(' + code(logtime(starting - 3 * 60 * 60) + ' - ' + logtime(ending - 3 * 60 * 60)) + ')\n'
                     text += summary(starting, ending)
                 bot.send_message(message.chat.id, text, parse_mode='HTML')
         elif message.chat.id == idMe:
