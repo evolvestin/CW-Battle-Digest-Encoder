@@ -6,6 +6,7 @@ import _thread
 import gspread
 import telebot
 import requests
+import calendar
 import traceback
 from time import sleep
 from bs4 import BeautifulSoup
@@ -55,9 +56,8 @@ def code(txt):
 
 
 def stamper(date, adder):
-    import datetime
     try:
-        stamp = int(datetime.datetime.strptime(date, "%d.%m.%Y").timestamp() + adder)
+        stamp = int(calendar.timegm(time.strptime(date, '%d.%m.%Y')) + adder)
     except:
         stamp = False
     return stamp
