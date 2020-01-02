@@ -58,7 +58,7 @@ def code(txt):
 
 def stamper(date, adder):
     try:
-        stamp = int(time.mktime(datetime.strptime(date, '%d.%m.%Y').timetuple()) + adder)
+        stamp = int(datetime.datetime.strptime(date, "%d.%m.%Y").timestamp() + adder)
     except:
         stamp = False
     return stamp
