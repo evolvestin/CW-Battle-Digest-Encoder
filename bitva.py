@@ -124,7 +124,7 @@ def timer(search):
     s_month = str(search.group(2))
     s_year = int(search.group(3)) - 60
     stamp = int(datetime.now().timestamp())
-    sec = ((stamp + (2 * 60 * 60) - 1530309600) * 3)
+    sec = ((stamp + (3 * 60 * 60) - 1530309600) * 3)
     if s_month == 'Wintar':
         month = 1
     elif s_month == 'Hornung':
@@ -287,8 +287,8 @@ def war_checker():
 
 
 def summary(time_start, time_end):
-    print('time_start = ' + str(time_start))
-    print('time_end = ' + str(time_end))
+    print('time_start = ' + str(time_start) + ' ' + logtime(time_start))
+    print('time_end = ' + str(time_end) + ' ' + logtime(time_end))
     global data2
     try:
         google = data2.col_values(1)
@@ -317,7 +317,7 @@ def summary(time_start, time_end):
         if time_search:
             date = timer(time_search)
             if time_start <= date <= time_end:
-                print('date = ' + str(date))
+                print('date = ' + str(date) + ' ' + logtime(date))
                 if trophy_search:
                     trophy = re.split('/', trophy_search.group(1))
                     for i in trophy:
