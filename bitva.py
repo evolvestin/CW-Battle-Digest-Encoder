@@ -433,7 +433,8 @@ def telepol():
 
 
 if __name__ == '__main__':
-    gain = [war_google, war_checker, double_checker]
+    gain = []
+    # gain = [war_google, war_checker, double_checker]
     thread_array = defaultdict(dict)
     for i in gain:
         thread_id = _thread.start_new_thread(i, ())
