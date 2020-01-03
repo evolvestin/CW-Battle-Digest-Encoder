@@ -18,19 +18,17 @@ stamp1 = int(datetime.now().timestamp())
 scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
 creds1 = ServiceAccountCredentials.from_json_keyfile_name('bitvo1.json', scope)
 creds2 = ServiceAccountCredentials.from_json_keyfile_name('bitvo2.json', scope)
-creds3 = ServiceAccountCredentials.from_json_keyfile_name('bitvo3.json', scope)
 client1 = gspread.authorize(creds1)
 client2 = gspread.authorize(creds2)
-client3 = gspread.authorize(creds3)
 data1 = client1.open('Digest').worksheet('main')
 data2 = client2.open('Digest').worksheet('main')
-data3 = client3.open('Digest').worksheet('main')
-checker = 4
-idMe = 396978030
+google = data1.col_values(1)
+
 e_trident = '🔱'
-bitva_id = int(data1.cell(1, 1).value)
-ignore = str(data1.cell(2, 1).value)
-ignore = ignore.split('/')
+idMe = 396978030
+bitva_id = int(google[0])
+checker = int(google[0]) - 1
+ignore = google[1].split('/')
 castle = '(🖤|🍆|🐢|🌹|🍁|☘️|🦇)'
 castle_list = ['🖤', '🍆', '🐢', '🌹', '🍁', '☘️', '🦇']
 character = {
@@ -42,8 +40,8 @@ character = {
     'героически отразили ': '🛡⚡',
     'скучали, на них ': '🛡😴',
 }
-
-
+google.pop(0)
+google.pop(0)
 # ====================================================================================
 
 
@@ -55,9 +53,16 @@ def code(txt):
     return '<code>' + txt + '</code>'
 
 
-def stamper(date, adder):
+def spacer(col):
+    space = ''
+    for j in range(col):
+        space += ' '
+    return space
+
+
+def stamper(date):
     try:
-        stamp = int(calendar.timegm(time.strptime(date, '%d.%m.%Y')) + adder)
+        stamp = int(calendar.timegm(time.strptime(date, '%d.%m.%Y %H:%M:%S')))
     except:
         stamp = False
     return stamp
@@ -191,7 +196,7 @@ def timer(search):
                 seconds = day30 - (24 * 60 * 60)
 
         seconds = seconds + s_day * 24 * 60 * 60
-        stack = int(stamp + (seconds - sec) / 3) + 5 * 60 * 60
+        stack = int(stamp + (seconds - sec) / 3) + 2 * 60 * 60
         return stack
 
 
@@ -213,8 +218,8 @@ def former(text, id):
 def war_google():
     while True:
         try:
-            sleep(1)
             global data1
+            global google
             global bitva_id
             printext = 'https://t.me/ChatWarsDigest/' + str(bitva_id)
             if str(bitva_id) not in ignore:
@@ -231,6 +236,7 @@ def war_google():
                         data1 = client1.open('Digest').worksheet('main')
                         data1.insert_row([soup], 3)
                         data1.update_cell(1, 1, bitva_id + 1)
+                    google.insert(0, soup)
                     sleep(5)
                     printext += ' Добавил битву в google'
                     bitva_id += 1
@@ -243,6 +249,7 @@ def war_google():
                 printext += ' В черном списке, пропускаю'
                 bitva_id += 1
             printer(printext)
+            sleep(1)
         except IndexError:
             executive(war_google, 0)
 
@@ -250,54 +257,42 @@ def war_google():
 def war_checker():
     while True:
         try:
-            sleep(8)
-            global data3
+            global data2
             global checker
             printext = 'https://t.me/ChatWarsDigest/' + str(checker)
-            if str(checker) not in ignore:
+            if str(checker) not in ignore and checker > 3:
                 text = requests.get(printext + '?embed=1')
                 soup = former(text, checker)
                 time_search = re.search('(\d{2}) (.*) 10(..).*Результаты сражений:', soup)
                 if time_search:
                     try:
-                        google = data3.col_values(1)
+                        checking = data2.col_values(1)
                     except:
-                        creds3 = ServiceAccountCredentials.from_json_keyfile_name('bitvo3.json', scope)
-                        client3 = gspread.authorize(creds3)
-                        data3 = client3.open('Digest').worksheet('main')
-                        google = data3.col_values(1)
-                    if soup not in google:
+                        creds2 = ServiceAccountCredentials.from_json_keyfile_name('bitvo2.json', scope)
+                        client2 = gspread.authorize(creds2)
+                        data2 = client2.open('Digest').worksheet('main')
+                        checking = data2.col_values(1)
+                    if soup not in checking:
                         bot.send_message(idMe, 'Привет\n' + printext + '\n\n' + str(soup) +
                                          '\n\nЭтой битвы нет, в базе, проверь')
                     printext += ' Проверил'
-                    checker += 1
+                    checker -= 1
                 elif soup == 'false':
                     printext += ' Ничего нет, ничего не делаю'
                     sleep(20)
                 else:
                     printext += ' Это не битва, пропускаю'
-                    checker += 1
+                    checker -= 1
             else:
                 printext += ' В черном списке, пропускаю'
-                checker += 1
+                checker -= 1
             printer(printext)
+            sleep(5)
         except IndexError:
             executive(war_checker, 0)
 
 
 def summary(time_start, time_end):
-    print('time_start = ' + str(time_start) + ' ' + logtime(time_start))
-    print('time_end = ' + str(time_end) + ' ' + logtime(time_end))
-    global data2
-    try:
-        google = data2.col_values(1)
-    except:
-        creds2 = ServiceAccountCredentials.from_json_keyfile_name('bitvo2.json', scope)
-        client2 = gspread.authorize(creds2)
-        data2 = client2.open('Digest').worksheet('main')
-        google = data2.col_values(1)
-    google.pop(0)
-    google.pop(0)
     castle_db = {}
     for i in castle_list:
         castle_db[i] = defaultdict(dict)
@@ -314,9 +309,8 @@ def summary(time_start, time_end):
         soup = re.sub('//По итогам сражений замкам начислено:.+', '', soup)
         splited = re.split('//', soup)
         if time_search:
-            date = timer(time_search)
+            date = timer(time_search) + 3 * 60 * 60
             if time_start <= date <= time_end:
-                print('date = ' + str(date) + ' ' + logtime(date))
                 if trophy_search:
                     trophy = re.split('/', trophy_search.group(1))
                     for i in trophy:
@@ -379,25 +373,57 @@ def summary(time_start, time_end):
     return text
 
 
-def double_checker():
-    while True:
-        try:
-            sleep(1800)
-            global data2
-            try:
-                google = data2.col_values(1)
-            except:
-                creds2 = ServiceAccountCredentials.from_json_keyfile_name('bitvo2.json', scope)
-                client2 = gspread.authorize(creds2)
-                data2 = client2.open('Digest').worksheet('main')
-                google = data2.col_values(1)
-            for i in google:
-                if google.count(i) > 1:
-                    bot.send_message(idMe, 'Элемент\n\n' + str(i) + '\n\nповторяется в базе '
-                                     + str(google.count(i)) + ' раз.\nНа данный момент он находится на позиции '
-                                     + str(google.index(i)) + ' в массиве')
-        except IndexError:
-            executive(double_checker, 0)
+def world_top(time_start, time_end):
+    castle_db = {}
+    for i in castle_list:
+        castle_db[i] = defaultdict(dict)
+        castle_db[i]['trophy'] = 0
+        for pos in range(1, 8):
+            castle_db[i][pos] = 0
+    for battle in reversed(google):
+        trophy_search = re.search('По итогам сражений замкам начислено:/(.*)', battle)
+        time_search = re.search('(\d{2}) (.*) 10(..).*Результаты сражений:', battle)
+        if time_search:
+            date = timer(time_search) + 3 * 60 * 60
+            if time_start <= date <= time_end:
+                if trophy_search:
+                    trophy = re.split('/', trophy_search.group(1))
+                    for i in trophy:
+                        search = re.search(castle + '.+ \+(\d+) 🏆 очков', i)
+                        if search:
+                            castle_db[search.group(1)]['trophy'] += int(search.group(2))
+                castle_temp = []
+                listed = list(castle_db.items())
+                listed.sort(key=lambda arr: arr[1]['trophy'])
+                for i in listed:
+                    castle_temp.append(i[0])
+                castle_temp.reverse()
+                for i in castle_temp:
+                    castle_db[i][castle_temp.index(i) + 1] += 1
+    max_len_pos = 0
+    castle_temp = []
+    listed = list(castle_db.items())
+    listed.sort(key=lambda arr: arr[1]['trophy'])
+    for i in listed:
+        array = castle_db.get(i[0])
+        castle_temp.append(i[0])
+        for pos in range(1, 8):
+            amount = str(array[pos])
+            if len(amount) > max_len_pos:
+                max_len_pos = len(amount)
+    text = '🏅|'
+    for i in range(1, 8):
+        text += spacer(max_len_pos - 2) + str(i) + 'м|'
+    text += '🏆\n'
+    for i in reversed(castle_temp):
+        array = castle_db.get(i)
+        text += i + '|'
+        for pos in range(1, 8):
+            amount = str(array[pos])
+            text += spacer(max_len_pos - len(amount)) + amount + '|'
+        if array['trophy'] >= 0:
+            text += str(array['trophy']) + ' \n'
+    return code(text)
 
 
 @bot.message_handler(func=lambda message: message.text)
@@ -407,15 +433,26 @@ def repeat_all_messages(message):
             modified = re.sub('/summary ', '', message.text)
             search = re.search('(.*?)-(.*?)\n(.*)', modified)
             if search:
-                starting = stamper(search.group(1), 0)
-                ending = stamper(search.group(2), 17 * 60 * 60)
-                print(starting)
-                print(ending)
+                starting = stamper(search.group(1))
+                ending = stamper(search.group(2))
                 text = search.group(3)
                 if str(starting) != 'False' and str(ending) != 'False':
                     text += '\n(' + code(logtime(starting - 3 * 60 * 60) + ' - ' + logtime(ending - 3 * 60 * 60)) + ')\n'
                     text += summary(starting, ending)
                 bot.send_message(message.chat.id, text, parse_mode='HTML')
+
+        elif message.text.startswith('/place'):
+            modified = re.sub('/place ', '', message.text)
+            search = re.search('(.+?)-(.+)', modified)
+            if search:
+                text = '<b>Ротация замков в worldtop\'е</b>'
+                starting = stamper(search.group(1))
+                ending = stamper(search.group(2))
+                if str(starting) != 'False' and str(ending) != 'False':
+                    text += '\n' + code(logtime(starting - 3 * 60 * 60) + ' - ' + logtime(ending - 3 * 60 * 60)) + '\n'
+                    text += world_top(starting, ending)
+                bot.send_message(message.chat.id, text, parse_mode='HTML')
+
         elif message.chat.id == idMe:
             if message.text.startswith('/base'):
                 doc = open('log.txt', 'rt')
@@ -425,6 +462,20 @@ def repeat_all_messages(message):
                 bot.send_message(message.chat.id, 'Я работаю')
     except IndexError:
         executive(repeat_all_messages, 1)
+
+
+def double_checker():
+    while True:
+        try:
+            sleep(1800)
+            for i in google:
+                if google.count(i) > 1:
+                    bot.send_message(idMe, 'Элемент\n\n' + str(i) + '\n\nповторяется в базе '
+                                     + str(google.count(i)) + ' раз.\nНа данный момент он находится на позиции '
+                                     + str(google.index(i)) + ' в массиве')
+            printer('готов')
+        except IndexError:
+            executive(double_checker, 0)
 
 
 def telepol():
@@ -437,8 +488,7 @@ def telepol():
 
 
 if __name__ == '__main__':
-    gain = []
-    # gain = [war_google, war_checker, double_checker]
+    gain = [war_google, war_checker, double_checker]
     thread_array = defaultdict(dict)
     for i in gain:
         thread_id = _thread.start_new_thread(i, ())
