@@ -273,8 +273,10 @@ def war_checker():
                         data2 = client2.open('Digest').worksheet('main')
                         checking = data2.col_values(1)
                     if soup not in checking:
-                        bot.send_message(idMe, 'Привет\n' + printext + '\n\n' + str(soup) +
-                                         '\n\nЭтой битвы нет, в базе, проверь')
+                        doc = open('war.py', 'w')
+                        doc_text = code('Привет\n' + printext + '\nЭтой битвы нет, в базе, проверь')
+                        bot.send_document(idMe, doc, caption=doc_text, parse_mode='HTML')
+                        doc.close()
                     printext += ' Проверил'
                     checker -= 1
                 elif soup == 'false':
