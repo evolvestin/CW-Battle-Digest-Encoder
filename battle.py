@@ -118,10 +118,8 @@ def war_checker():
                         data2 = gspread.service_account('2.json').open('Digest').worksheet('main')
                         checking = data2.col_values(1)
                     if soup not in checking:
-                        doc = open('war.html', 'w')
                         doc_text = code('Привет\n' + printext + '\nЭтой битвы нет, в базе, проверь')
-                        bot.send_document(idMe, doc, caption=doc_text, parse_mode='HTML')
-                        doc.close()
+                        bot.send_message(idMe, doc_text, parse_mode='HTML')
                     printext += ' Проверил'
                     checker -= 1
                 elif soup == 'false':
