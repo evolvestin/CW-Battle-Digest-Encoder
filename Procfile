@@ -1,1 +1,1 @@
-worker: python bitva.py
+worker: python battle.py
