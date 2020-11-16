@@ -6,10 +6,12 @@ import _thread
 import gspread
 import requests
 from time import sleep
+from aiogram import types
 from bs4 import BeautifulSoup
-from collections import defaultdict, Counter
+from aiogram.utils import executor
+from aiogram.dispatcher import Dispatcher
 from objects import code, stamper, log_time
-
+from collections import defaultdict, Counter
 stamp1 = objects.time_now()
 objects.environmental_files(python=True)
 Auth = objects.AuthCentre(os.environ['TOKEN'], dev_chat_id=396978030)
@@ -48,11 +50,11 @@ def creation_google_values():
     return sheet, values
 
 
-executive = Auth.thread_exec
-bot = Auth.start_main_bot('non-async')
 worksheet, google_values = creation_google_values()
-# ====================================================================================
+bot = Auth.start_main_bot('async')
+dispatcher = Dispatcher(bot)
 Auth.start_message(stamp1)
+# ====================================================================================
 
 
 def spacer(col):
@@ -122,7 +124,7 @@ def battle_to_google():
                 else:
                     sleep(20)
             except IndexError and Exception:
-                executive()
+                Auth.thread_exec()
     else:
         Auth.send_json(None, 'war_google', 'Не найдено нормальное значение last_post_id, тред не может быть начат')
 
@@ -174,7 +176,7 @@ def battle_in_google_checker():
                 check_id -= 1   # Это не битва, пропускаем
             sleep(2)
         except IndexError and Exception:
-            executive()
+            Auth.thread_exec()
 
 
 def summary(time_start, time_end):
@@ -313,8 +315,8 @@ def world_top(time_start, time_end):
     return code(text)
 
 
-@bot.message_handler(func=lambda message: message.text)
-def repeat_all_messages(message):
+@dispatcher.message_handler()
+async def repeat_all_messages(message: types.Message):
     try:
         if message.text.startswith('/summary'):
             modified = re.sub('/summary ', '', message.text)
@@ -348,20 +350,11 @@ def repeat_all_messages(message):
             else:
                 bot.send_message(message.chat.id, 'Я работаю')
     except IndexError and Exception:
-        executive(str(message))
-
-
-def telegram_polling():
-    try:
-        bot.polling(none_stop=True, timeout=60)
-    except IndexError and Exception:
-        bot.stop_polling()
-        sleep(1)
-        telegram_polling()
+        await Auth.async_exec(str(message))
 
 
 if __name__ == '__main__':
     gain = [battle_to_google, battle_in_google_checker]
     for thread_element in gain:
         _thread.start_new_thread(thread_element, ())
-    telegram_polling()
+    executor.start_polling(dispatcher)
