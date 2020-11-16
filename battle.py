@@ -7,24 +7,20 @@ import gspread
 import requests
 from time import sleep
 from bs4 import BeautifulSoup
-from collections import defaultdict
+from collections import defaultdict, Counter
 from objects import code, stamper, log_time
 
 stamp1 = objects.time_now()
 objects.environmental_files(python=True)
+Auth = objects.AuthCentre(os.environ['TOKEN'], dev_chat_id=396978030)
 # ====================================================================================
-data1 = gspread.service_account('1.json').open('Digest').worksheet('main2')
-data2 = gspread.service_account('2.json').open('Digest').worksheet('main2')
-google = data1.col_values(1)
-
 e_trident = '🔱'
 idMe = 396978030
-bitva_id = int(google[0])
-checker = int(google[0]) - 1
-ignore = google[1].split('/')
-castle = '(🖤|🍆|🐢|🌹|🍁|☘️|🦇)'
+last_post_id = None
+checker_blocking = None
+castle = '(🖤|🍆|🐢|🌹|🍁|☘|🦇)'
 main_address = 'https://t.me/ChatWarsDigest/'
-castle_list = ['🖤', '🍆', '🐢', '🌹', '🍁', '☘️', '🦇']
+castle_list = ['🖤', '🍆', '🐢', '🌹', '🍁', '☘', '🦇']
 character = {
     'со значительным преимуществом': '⚔😎',
     'успешно атаковали защитников': '⚔',
@@ -34,13 +30,29 @@ character = {
     'героически отразили ': '🛡⚡',
     'скучали, на них ': '🛡😴',
 }
-google.pop(0)
-google.pop(0)
-Auth = objects.AuthCentre(os.environ['TOKEN'])
-bot = Auth.start_main_bot('non-async')
+
+
+def creation_google_values():
+    sheet = gspread.service_account('1.json').open('Digest').worksheet('main2')
+    raw_values = sheet.col_values(1)
+    values = []
+    counter_values = Counter(raw_values)
+    for value in counter_values:
+        values.append(re.sub('️', '', value))
+        if counter_values[value] > 1:
+            post_id = str(value.split('/')[0])
+            text = '\nПовторяется в базе ' + str(counter_values[value]) + \
+                ' раз(а).\nНа данный момент он находится на позиции ' + str(raw_values.index(value)) + ' в таблице.'
+            text = code('Элемент с id:') + objects.html_link(main_address + post_id, post_id) + code(text)
+            Auth.send_dev_message(text, tag=None)
+    return sheet, values
+
+
 executive = Auth.thread_exec
-#Auth.start_message(stamp1)
+bot = Auth.start_main_bot('non-async')
+worksheet, google_values = creation_google_values()
 # ====================================================================================
+Auth.start_message(stamp1)
 
 
 def spacer(col):
@@ -48,21 +60,6 @@ def spacer(col):
     for j in range(col):
         space += ' '
     return space
-
-
-def former_old(text, post_id):
-    soup = BeautifulSoup(text.text, 'html.parser')
-    is_post_not_exist = str(soup.find('div', class_='tgme_widget_message_error'))
-    if str(is_post_not_exist) == 'None':
-        brief = str(soup.find('div', class_='tgme_widget_message_text js-message_text'))
-        brief = re.sub(r' (dir|class|style)=\\"\w+[^\\"]+\\"', '', brief)
-        brief = re.sub('(<b>|</b>|<i>|</i>|<div>|</div>)', '', brief)
-        brief = re.sub('/', '&#47;', brief)
-        brief = re.sub('(<br&#47;>)', '/', brief)
-        brief = str(post_id) + '/' + brief
-    else:
-        brief = 'false'
-    return brief
 
 
 def former(text):
@@ -80,86 +77,102 @@ def former(text):
 
 
 def battle_to_google():
-    worksheet = gspread.service_account('1.json').open('Digest').worksheet('main2')
-    google_values = worksheet.col_values(1)
+    global worksheet, last_post_id, google_values
     value = re.sub(r'\D', '', google_values[-1].split('/')[0])
     if len(value) > 0:
         last_post_id = int(value) + 1
         false_barrier = 0
         while True:
             try:
-                print_text = main_address + str(last_post_id)
-                response = requests.get(print_text + '?embed=1')
-                text = former(response.text)
-                battle_search = re.search(r'(\d{2}) (.*?) 10(\d{2}).Результаты сражений:', text)
-                if battle_search:
-                    row = str(len(google_values) + 1)
-                    try:
-                        battle_range = worksheet.range('A' + row + ':A' + row)
-                        battle_range[0].value = text
-                        worksheet.update_cells(battle_range)
-                    except IndexError and Exception:
-                        worksheet = gspread.service_account('1.json').open('Digest').worksheet('main2')
-                        battle_range = worksheet.range('A' + row + ':A' + row)
-                        battle_range[0].value = text
-                        worksheet.update_cells(battle_range)
-                    google_values.append(text)
-                    sleep(1.2)
-                    print_text += ' Добавил битву в таблицу'
-                    last_post_id += 1
-                elif text == 'False':
-                    if false_barrier < 4:
-                        print_text += ' Поста нет, false_barrier = ' + str(false_barrier)
-                        false_barrier += 1
-                        last_post_id += 1
-                        sleep(1)
+                if checker_blocking is None:
+                    print_text = main_address + str(last_post_id)
+                    text = former(requests.get(print_text + '?embed=1').text)
+                    battle_search = re.search(r'(\d{2}) (.*?) 10(\d{2}).Результаты сражений:', text)
+                    if battle_search:
+                        if re.sub('️', '', text) not in google_values:
+                            row = str(len(google_values) + 1)
+                            try:
+                                battle_range = worksheet.range('A' + row + ':A' + row)
+                                battle_range[0].value = text
+                                worksheet.update_cells(battle_range)
+                            except IndexError and Exception:
+                                worksheet = gspread.service_account('1.json').open('Digest').worksheet('main2')
+                                battle_range = worksheet.range('A' + row + ':A' + row)
+                                battle_range[0].value = text
+                                worksheet.update_cells(battle_range)
+                            google_values.append(re.sub('️', '', text))
+                            objects.printer(print_text + ' Добавил битву в таблицу')
+                            last_post_id += 1
+                            sleep(1.2)
+                        else:
+                            objects.printer(print_text + ' Битва уже была в таблице')
+                            last_post_id += 1
+                    elif text == 'False':
+                        if false_barrier < 4:
+                            false_barrier += 1
+                            last_post_id += 1
+                            sleep(1)
+                        else:
+                            objects.printer(print_text + ' Постов нет вместе с false_barrier, ищем заново')
+                            last_post_id -= false_barrier
+                            false_barrier = 0
+                            sleep(3)
                     else:
-                        print_text += ' Постов нет вместе с false_barrier, ищем заново'
-                        last_post_id -= false_barrier
-                        false_barrier = 0
-                        sleep(3)
+                        last_post_id += 1  # Это не битва, пропускаем
                 else:
-                    print_text += ' Это не битва, пропускаю'
-                    last_post_id += 1
-                objects.printer(print_text)
+                    sleep(20)
             except IndexError and Exception:
                 executive()
     else:
         Auth.send_json(None, 'war_google', 'Не найдено нормальное значение last_post_id, тред не может быть начат')
 
 
-def war_checker():
+def battle_in_google_checker():
+    from copy import deepcopy
+    global worksheet, checker_blocking
+    while last_post_id is None:
+        pass
+    if last_post_id:
+        check_id = deepcopy(last_post_id)
+    else:
+        check_id = 0
+    false_barrier = 0
     while True:
         try:
-            global data2
-            global checker
-            printext = main_address + str(checker)
-            if str(checker) not in ignore and checker > 3:
-                text = requests.get(printext + '?embed=1')
-                soup = former(text, checker)
-                time_search = re.search(r'(\d{2}) (.*) 10(..).*Результаты сражений:', soup)
-                if time_search:
-                    try:
-                        checking = data2.col_values(1)
-                    except IndexError and Exception:
-                        data2 = gspread.service_account('2.json').open('Digest').worksheet('main2')
-                        checking = data2.col_values(1)
-                    if soup not in checking:
-                        doc_text = code('Привет\n' + printext + '\nЭтой битвы нет, в базе, проверь')
-                        bot.send_message(idMe, doc_text, parse_mode='HTML')
-                    printext += ' Проверил'
-                    checker -= 1
-                elif soup == 'false':
-                    printext += ' Ничего нет, ничего не делаю'
-                    sleep(20)
+            print_text = main_address + str(check_id)
+            text = former(requests.get(print_text + '?embed=1').text)
+            battle_search = re.search(r'(\d{2}) (.*?) 10(\d{2}).Результаты сражений:', text)
+            if battle_search:
+                print_text += ' Проверил'
+                if re.sub('️', '', text) not in google_values:
+                    checker_blocking = True
+                    sleep(10)
+                    row = str(len(google_values) + 1)
+                    worksheet = gspread.service_account('1.json').open('Digest').worksheet('main2')
+                    battle_range = worksheet.range('A' + row + ':A' + row)
+                    battle_range[0].value = text
+                    worksheet.update_cells(battle_range)
+                    sleep(10)
+                    checker_blocking = None
+                    print_text += ', добавил в таблицу пропавшую битву'
+                objects.printer(print_text)
+                check_id -= 1
+            elif text == 'False':
+                if false_barrier < 4:
+                    false_barrier += 1
+                    check_id -= 1
+                    sleep(1)
                 else:
-                    printext += ' Это не битва, пропускаю'
-                    checker -= 1
+                    objects.printer(print_text + ' Постов нет вместе с false_barrier, ищем заново')
+                    if check_id <= 4:
+                        objects.printer('Проверка завершена успешно')
+                        _thread.exit()
+                    check_id -= false_barrier
+                    false_barrier = 0
+                    sleep(3)
             else:
-                printext += ' В черном списке, пропускаю'
-                checker -= 1
-            objects.printer(printext)
-            sleep(5)
+                check_id -= 1   # Это не битва, пропускаем
+            sleep(2)
         except IndexError and Exception:
             executive()
 
@@ -338,20 +351,6 @@ def repeat_all_messages(message):
         executive(str(message))
 
 
-def double_checker():
-    while True:
-        try:
-            sleep(1800)
-            for i in google:
-                if google.count(i) > 1:
-                    bot.send_message(idMe, 'Элемент\n\n' + str(i) + '\n\nповторяется в базе '
-                                     + str(google.count(i)) + ' раз.\nНа данный момент он находится на позиции '
-                                     + str(google.index(i)) + ' в массиве')
-            objects.printer('готов')
-        except IndexError and Exception:
-            executive()
-
-
 def telegram_polling():
     try:
         bot.polling(none_stop=True, timeout=60)
@@ -362,7 +361,7 @@ def telegram_polling():
 
 
 if __name__ == '__main__':
-    gain = [battle_to_google]
+    gain = [battle_to_google, battle_in_google_checker]
     for thread_element in gain:
         _thread.start_new_thread(thread_element, ())
     telegram_polling()
