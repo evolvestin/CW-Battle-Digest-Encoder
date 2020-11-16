@@ -8,15 +8,14 @@ import requests
 from time import sleep
 from aiogram import types
 from bs4 import BeautifulSoup
+from collections import Counter
 from aiogram.utils import executor
 from aiogram.dispatcher import Dispatcher
 from objects import code, stamper, log_time
-from collections import defaultdict, Counter
 stamp1 = objects.time_now()
 objects.environmental_files(python=True)
 Auth = objects.AuthCentre(os.environ['TOKEN'], dev_chat_id=396978030)
 # ====================================================================================
-e_trident = '🔱'
 idMe = 396978030
 last_post_id = None
 checker_blocking = None
@@ -35,7 +34,7 @@ character = {
 
 
 def creation_google_values():
-    sheet = gspread.service_account('1.json').open('Digest').worksheet('main2')
+    sheet = gspread.service_account('1.json').open('Digest').worksheet('main')
     raw_values = sheet.col_values(1)
     values = []
     counter_values = Counter(raw_values)
@@ -98,7 +97,7 @@ def battle_to_google():
                                 battle_range[0].value = text
                                 worksheet.update_cells(battle_range)
                             except IndexError and Exception:
-                                worksheet = gspread.service_account('1.json').open('Digest').worksheet('main2')
+                                worksheet = gspread.service_account('1.json').open('Digest').worksheet('main')
                                 battle_range = worksheet.range('A' + row + ':A' + row)
                                 battle_range[0].value = text
                                 worksheet.update_cells(battle_range)
@@ -150,7 +149,7 @@ def battle_in_google_checker():
                     checker_blocking = True
                     sleep(10)
                     row = str(len(google_values) + 1)
-                    worksheet = gspread.service_account('1.json').open('Digest').worksheet('main2')
+                    worksheet = gspread.service_account('1.json').open('Digest').worksheet('main')
                     battle_range = worksheet.range('A' + row + ':A' + row)
                     battle_range[0].value = text
                     worksheet.update_cells(battle_range)
@@ -183,14 +182,14 @@ def summary(time_start, time_end):
     from timer import timer
     castle_db = {}
     for i in castle_list:
-        castle_db[i] = defaultdict(dict)
+        castle_db[i] = {}
         castle_db[i]['money'] = 0
         castle_db[i]['box'] = 0
         castle_db[i]['trophy'] = 0
         castle_db[i]['🔱'] = 0
         for mini in character:
             castle_db[i][character.get(mini)] = 0
-    for battle in google:
+    for battle in google_values:
         trophy_search = re.search('По итогам сражений замкам начислено:/(.*)', battle)
         time_search = re.search(r'(\d{2}) (.*) 10(..).*Результаты сражений:', battle)
         soup = re.sub('.*Результаты сражений:/', '', battle)
@@ -211,8 +210,8 @@ def summary(time_start, time_end):
                         for m in character:
                             if m in string:
                                 mini = character.get(m)
-                                if e_trident in string:
-                                    mini = e_trident
+                                if '🔱' in string:
+                                    mini = '🔱'
                                 castle_db[search.group(1)][mini] += 1
                                 break
 
@@ -265,11 +264,11 @@ def world_top(time_start, time_end):
     from timer import timer
     castle_db = {}
     for i in castle_list:
-        castle_db[i] = defaultdict(dict)
+        castle_db[i] = {}
         castle_db[i]['trophy'] = 0
         for pos in range(1, 8):
             castle_db[i][pos] = 0
-    for battle in reversed(google):
+    for battle in reversed(google_values):
         trophy_search = re.search('По итогам сражений замкам начислено:/(.*)', battle)
         time_search = re.search(r'(\d{2}) (.*) 10(..).*Результаты сражений:', battle)
         if time_search:
@@ -315,11 +314,20 @@ def world_top(time_start, time_end):
     return code(text)
 
 
+@dispatcher.message_handler(commands="set_commands", state="*")
+async def cmd_set_commands(message: types.Message):
+    if message.from_user.id == 1234567:  # Подставьте сюда свой Telegram ID
+        commands = [types.BotCommand(command="/drinks", description="Заказать напитки"),
+                    types.BotCommand(command="/food", description="Заказать блюда")]
+        await bot.set_my_commands(commands)
+        await message.answer("Команды настроены.")
+
+
 @dispatcher.message_handler()
 async def repeat_all_messages(message: types.Message):
     try:
-        if message.text.startswith('/summary'):
-            modified = re.sub('/summary ', '', message.text)
+        if message['text'].startswith('/summary'):
+            modified = re.sub('/summary ', '', message['text'])
             search = re.search('(.*?)-(.*?)\n(.*)', modified)
             if search:
                 starting = stamper(search.group(1), '%d.%m.%Y %H:%M:%S')
@@ -328,9 +336,9 @@ async def repeat_all_messages(message: types.Message):
                 if str(starting) != 'False' and str(ending) != 'False':
                     text += '\n(' + log_time(starting - 3 * 60 * 60, code) + code(' - ')
                     text += log_time(ending - 3 * 60 * 60, code) + ')\n' + summary(starting, ending)
-                bot.send_message(message.chat.id, text, parse_mode='HTML')
+                await bot.send_message(message['chat']['id'], text, parse_mode='HTML')
 
-        elif message.text.startswith('/place'):
+        elif message['text'].startswith('/place'):
             modified = re.sub('/place ', '', message.text)
             search = re.search('(.+?)-(.+)', modified)
             if search:
@@ -340,21 +348,18 @@ async def repeat_all_messages(message: types.Message):
                 if str(starting) != 'False' and str(ending) != 'False':
                     text += '\n' + log_time(starting - 3 * 60 * 60, code) + code(' - ')
                     text += log_time(ending - 3 * 60 * 60, code) + '\n' + world_top(starting, ending)
-                bot.send_message(message.chat.id, text, parse_mode='HTML')
+                await bot.send_message(message['chat']['id'], text, parse_mode='HTML')
 
-        elif message.chat.id == idMe:
-            if message.text.startswith('/base'):
-                doc = open('log.txt', 'rt')
-                bot.send_document(idMe, doc)
-                doc.close()
-            else:
-                bot.send_message(message.chat.id, 'Я работаю')
+        elif message['chat']['id'] == idMe:
+            if message.text.startswith('/log'):
+                await bot.send_document(message['chat']['id'], open('log.txt', 'r'))
+
     except IndexError and Exception:
         await Auth.async_exec(str(message))
 
 
 if __name__ == '__main__':
-    gain = [battle_to_google, battle_in_google_checker]
+    gain = []
     for thread_element in gain:
         _thread.start_new_thread(thread_element, ())
     executor.start_polling(dispatcher)
