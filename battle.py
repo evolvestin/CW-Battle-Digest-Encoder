@@ -13,8 +13,8 @@ from objects import code, stamper, log_time
 stamp1 = objects.time_now()
 objects.environmental_files(python=True)
 # ====================================================================================
-data1 = gspread.service_account('1.json').open('Digest').worksheet('main')
-data2 = gspread.service_account('2.json').open('Digest').worksheet('main')
+data1 = gspread.service_account('1.json').open('Digest').worksheet('main2')
+data2 = gspread.service_account('2.json').open('Digest').worksheet('main2')
 google = data1.col_values(1)
 
 e_trident = '🔱'
@@ -23,6 +23,7 @@ bitva_id = int(google[0])
 checker = int(google[0]) - 1
 ignore = google[1].split('/')
 castle = '(🖤|🍆|🐢|🌹|🍁|☘️|🦇)'
+main_address = 'https://t.me/ChatWarsDigest/'
 castle_list = ['🖤', '🍆', '🐢', '🌹', '🍁', '☘️', '🦇']
 character = {
     'со значительным преимуществом': '⚔😎',
@@ -38,7 +39,7 @@ google.pop(0)
 Auth = objects.AuthCentre(os.environ['TOKEN'])
 bot = Auth.start_main_bot('non-async')
 executive = Auth.thread_exec
-Auth.start_message(stamp1)
+#Auth.start_message(stamp1)
 # ====================================================================================
 
 
@@ -49,7 +50,7 @@ def spacer(col):
     return space
 
 
-def former(text, post_id):
+def former_old(text, post_id):
     soup = BeautifulSoup(text.text, 'html.parser')
     is_post_not_exist = str(soup.find('div', class_='tgme_widget_message_error'))
     if str(is_post_not_exist) == 'None':
@@ -64,41 +65,67 @@ def former(text, post_id):
     return brief
 
 
-def war_google():
-    while True:
-        try:
-            global data1
-            global google
-            global bitva_id
-            printext = 'https://t.me/ChatWarsDigest/' + str(bitva_id)
-            if str(bitva_id) not in ignore:
-                text = requests.get(printext + '?embed=1')
-                soup = former(text, bitva_id)
-                time_search = re.search(r'(\d{2}) (.*) 10(..).*Результаты сражений:', soup)
-                if time_search:
+def former(text):
+    response = 'False'
+    soup = BeautifulSoup(text, 'html.parser')
+    is_post_not_exist = soup.find('div', class_='tgme_widget_message_error')
+    if is_post_not_exist is None:
+        post_raw = str(soup.find('div', class_='tgme_widget_message_text js-message_text')).replace('<br/>', '\n')
+        get_au_id = soup.find('div', class_='tgme_widget_message_link')
+        if get_au_id:
+            au_id = re.sub('t.me/.*?/', '', get_au_id.get_text())
+            post = BeautifulSoup(post_raw, 'html.parser').get_text()
+            response = au_id + '/' + re.sub('/', '&#47;', post).replace('\n', '/')
+    return response
+
+
+def battle_to_google():
+    worksheet = gspread.service_account('1.json').open('Digest').worksheet('main2')
+    google_values = worksheet.col_values(1)
+    value = re.sub(r'\D', '', google_values[-1].split('/')[0])
+    if len(value) > 0:
+        last_post_id = int(value) + 1
+        false_barrier = 0
+        while True:
+            try:
+                print_text = main_address + str(last_post_id)
+                response = requests.get(print_text + '?embed=1')
+                text = former(response.text)
+                battle_search = re.search(r'(\d{2}) (.*?) 10(\d{2}).Результаты сражений:', text)
+                if battle_search:
+                    row = str(len(google_values) + 1)
                     try:
-                        data1.insert_row([soup], 3)
-                        data1.update_cell(1, 1, bitva_id + 1)
+                        battle_range = worksheet.range('A' + row + ':A' + row)
+                        battle_range[0].value = text
+                        worksheet.update_cells(battle_range)
                     except IndexError and Exception:
-                        data1 = gspread.service_account('1.json').open('Digest').worksheet('main')
-                        data1.insert_row([soup], 3)
-                        data1.update_cell(1, 1, bitva_id + 1)
-                    google.insert(0, soup)
-                    sleep(5)
-                    printext += ' Добавил битву в google'
-                    bitva_id += 1
-                elif soup == 'false':
-                    printext += ' Ничего нет, ничего не делаю'
+                        worksheet = gspread.service_account('1.json').open('Digest').worksheet('main2')
+                        battle_range = worksheet.range('A' + row + ':A' + row)
+                        battle_range[0].value = text
+                        worksheet.update_cells(battle_range)
+                    google_values.append(text)
+                    sleep(1.2)
+                    print_text += ' Добавил битву в таблицу'
+                    last_post_id += 1
+                elif text == 'False':
+                    if false_barrier < 4:
+                        print_text += ' Поста нет, false_barrier = ' + str(false_barrier)
+                        false_barrier += 1
+                        last_post_id += 1
+                        sleep(1)
+                    else:
+                        print_text += ' Постов нет вместе с false_barrier, ищем заново'
+                        last_post_id -= false_barrier
+                        false_barrier = 0
+                        sleep(3)
                 else:
-                    printext += ' Это не битва, пропускаю'
-                    bitva_id += 1
-            else:
-                printext += ' В черном списке, пропускаю'
-                bitva_id += 1
-            objects.printer(printext)
-            sleep(1)
-        except IndexError and Exception:
-            executive()
+                    print_text += ' Это не битва, пропускаю'
+                    last_post_id += 1
+                objects.printer(print_text)
+            except IndexError and Exception:
+                executive()
+    else:
+        Auth.send_json(None, 'war_google', 'Не найдено нормальное значение last_post_id, тред не может быть начат')
 
 
 def war_checker():
@@ -106,7 +133,7 @@ def war_checker():
         try:
             global data2
             global checker
-            printext = 'https://t.me/ChatWarsDigest/' + str(checker)
+            printext = main_address + str(checker)
             if str(checker) not in ignore and checker > 3:
                 text = requests.get(printext + '?embed=1')
                 soup = former(text, checker)
@@ -115,7 +142,7 @@ def war_checker():
                     try:
                         checking = data2.col_values(1)
                     except IndexError and Exception:
-                        data2 = gspread.service_account('2.json').open('Digest').worksheet('main')
+                        data2 = gspread.service_account('2.json').open('Digest').worksheet('main2')
                         checking = data2.col_values(1)
                     if soup not in checking:
                         doc_text = code('Привет\n' + printext + '\nЭтой битвы нет, в базе, проверь')
@@ -335,7 +362,7 @@ def telegram_polling():
 
 
 if __name__ == '__main__':
-    gain = [war_google, war_checker, double_checker]
+    gain = [battle_to_google]
     for thread_element in gain:
         _thread.start_new_thread(thread_element, ())
     telegram_polling()
