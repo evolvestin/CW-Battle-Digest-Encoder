@@ -12,7 +12,7 @@ from bs4 import BeautifulSoup
 from collections import Counter
 from aiogram.utils import executor
 from aiogram.dispatcher import Dispatcher
-from objects import code, stamper, log_time
+from objects import bold, code, stamper, log_time, html_link
 stamp1 = objects.time_now()
 objects.environmental_files(python=True)
 Auth = objects.AuthCentre(os.environ['TOKEN'])
@@ -21,6 +21,7 @@ idMe = 396978030
 last_post_id = None
 checker_blocking = None
 castle = '(🖤|🍆|🐢|🌹|🍁|☘|🦇)'
+share_link = 'https://t.me/share/url?url='
 main_address = 'https://t.me/ChatWarsDigest/'
 castle_list = ['🖤', '🍆', '🐢', '🌹', '🍁', '☘', '🦇']
 character = {
@@ -327,7 +328,7 @@ async def repeat_all_messages(message: types.Message):
                 ending = stamper(search.group(2), '%d.%m.%Y %H:%M:%S')
                 if starting and ending:
                     text = search.group(3)
-                    text += '\n(' + log_time(starting, code, gmt=0) + code(' - ')
+                    text += '\n(' + log_time(starting, code, gmt=0, form=True) + code(' - ')
                     text += log_time(ending, code, gmt=0) + ')\n' + summary(starting, ending)
             await bot.send_message(message['chat']['id'], text, parse_mode='HTML')
 
@@ -338,8 +339,8 @@ async def repeat_all_messages(message: types.Message):
                 starting = stamper(search.group(1), '%d.%m.%Y %H:%M:%S')
                 ending = stamper(search.group(2), '%d.%m.%Y %H:%M:%S')
                 if starting and ending:
-                    text = objects.bold('Ротация замков в &#47;worldtop')
-                    text += '\n' + log_time(starting, code, gmt=0) + code(' - ')
+                    text = bold('Ротация замков в ') + html_link(share_link + '/worldtop', '/worldtop')
+                    text += '\n' + log_time(starting, code, gmt=0, form=True) + code(' - ')
                     text += log_time(ending, code, gmt=0) + '\n' + world_top(starting, ending)
             await bot.send_message(message['chat']['id'], text, parse_mode='HTML')
 
@@ -352,8 +353,8 @@ async def repeat_all_messages(message: types.Message):
                         starting = stamper(search.group(1), '%d/%m/%Y %H:%M')
                         ending = stamper(search.group(2), '%d/%m/%Y %H:%M')
                         if starting and ending:
-                            text = objects.bold('Ротация замков в &#47;worldtop')
-                            text += '\n' + log_time(starting, code, gmt=0) + code(' - ')
+                            text = bold('Ротация замков в ') + html_link(share_link + '/worldtop', '/worldtop')
+                            text += '\n' + log_time(starting, code, gmt=0, form=True) + code(' - ')
                             text += log_time(ending, code, gmt=0) + '\n' + world_top(starting, ending)
                             break
             await bot.send_message(message['chat']['id'], text, parse_mode='HTML')
