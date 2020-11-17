@@ -5,6 +5,7 @@ import objects
 import _thread
 import gspread
 import requests
+import asyncio
 from time import sleep
 from aiogram import types
 from bs4 import BeautifulSoup
@@ -191,7 +192,7 @@ def summary(time_start, time_end):
             castle_db[i][character.get(mini)] = 0
     for battle in google_values:
         trophy_search = re.search('По итогам сражений замкам начислено:/(.*)', battle)
-        time_search = re.search(r'(\d{2}) (.*) 10(..).*Результаты сражений:', battle)
+        time_search = re.search(r'(\d{2}) (.*?) 10(\d{2}).Результаты сражений:', battle)
         soup = re.sub('.*Результаты сражений:/', '', battle)
         soup = re.sub('//По итогам сражений замкам начислено:.+', '', soup)
         splited = re.split('//', soup)
@@ -270,7 +271,7 @@ def world_top(time_start, time_end):
             castle_db[i][pos] = 0
     for battle in reversed(google_values):
         trophy_search = re.search('По итогам сражений замкам начислено:/(.*)', battle)
-        time_search = re.search(r'(\d{2}) (.*) 10(..).*Результаты сражений:', battle)
+        time_search = re.search(r'(\d{2}) (.*?) 10(\d{2}).Результаты сражений:', battle)
         if time_search:
             date = timer(time_search) + 3 * 60 * 60
             if time_start <= date <= time_end:
@@ -288,7 +289,7 @@ def world_top(time_start, time_end):
                 castle_temp.reverse()
                 for i in castle_temp:
                     castle_db[i][castle_temp.index(i) + 1] += 1
-    max_len_pos = 0
+    max_len_pos = 2
     castle_temp = []
     listed = list(castle_db.items())
     listed.sort(key=lambda arr: arr[1]['trophy'])
@@ -314,15 +315,6 @@ def world_top(time_start, time_end):
     return code(text)
 
 
-@dispatcher.message_handler(commands="set_commands", state="*")
-async def cmd_set_commands(message: types.Message):
-    if message.from_user.id == 1234567:  # Подставьте сюда свой Telegram ID
-        commands = [types.BotCommand(command="/drinks", description="Заказать напитки"),
-                    types.BotCommand(command="/food", description="Заказать блюда")]
-        await bot.set_my_commands(commands)
-        await message.answer("Команды настроены.")
-
-
 @dispatcher.message_handler()
 async def repeat_all_messages(message: types.Message):
     try:
@@ -334,21 +326,36 @@ async def repeat_all_messages(message: types.Message):
                 ending = stamper(search.group(2), '%d.%m.%Y %H:%M:%S')
                 text = search.group(3)
                 if str(starting) != 'False' and str(ending) != 'False':
-                    text += '\n(' + log_time(starting - 3 * 60 * 60, code) + code(' - ')
-                    text += log_time(ending - 3 * 60 * 60, code) + ')\n' + summary(starting, ending)
+                    text += '\n(' + log_time(starting, code, gmt=0) + code(' - ')
+                    text += log_time(ending, code, gmt=0) + ')\n' + summary(starting, ending)
                 await bot.send_message(message['chat']['id'], text, parse_mode='HTML')
 
         elif message['text'].startswith('/place'):
             modified = re.sub('/place ', '', message.text)
             search = re.search('(.+?)-(.+)', modified)
             if search:
-                text = '<b>Ротация замков в worldtop\'е</b>'
+                text = objects.bold('Ротация замков в /worldtop')
                 starting = stamper(search.group(1), '%d.%m.%Y %H:%M:%S')
                 ending = stamper(search.group(2), '%d.%m.%Y %H:%M:%S')
                 if str(starting) != 'False' and str(ending) != 'False':
                     text += '\n' + log_time(starting - 3 * 60 * 60, code) + code(' - ')
                     text += log_time(ending - 3 * 60 * 60, code) + '\n' + world_top(starting, ending)
                 await bot.send_message(message['chat']['id'], text, parse_mode='HTML')
+
+        elif message['text'].startswith('/season'):
+            text = 'ERROR'
+            commands = await bot.get_my_commands()
+            for command in commands:
+                if command['command'] == 'season':
+                    search = re.search('(.*?)—(.*?)', command['description'])
+                    if search:
+                        starting = stamper(search.group(1), '%d/%m/%Y %H:%M')
+                        ending = stamper(search.group(2), '%d/%m/%Y %H:%M')
+                        if starting and ending:
+                            text = objects.bold('Ротация замков в /worldtop')
+                            text += '\n' + log_time(starting, code, gmt=0) + code(' - ')
+                            text += log_time(ending, code, gmt=0) + '\n' + world_top(starting, ending)
+            await bot.send_message(message['chat']['id'], text, parse_mode='HTML')
 
         elif message['chat']['id'] == idMe:
             if message.text.startswith('/log'):
@@ -358,8 +365,58 @@ async def repeat_all_messages(message: types.Message):
         await Auth.async_exec(str(message))
 
 
+async def changing_season_start_description():
+    from datetime import datetime
+    while True:
+        try:
+            stamp = objects.time_now()
+            minute = int(datetime.utcfromtimestamp(stamp).strftime('%M'))
+            day = int(datetime.utcfromtimestamp(stamp + 3 * 60 * 60).strftime('%d'))
+            hour = int(datetime.utcfromtimestamp(stamp + 3 * 60 * 60).strftime('%H'))
+            month = int(datetime.utcfromtimestamp(stamp + 3 * 60 * 60).strftime('%m'))
+            if hour == 17 and day == 1 and month in [3, 6, 9, 12]:
+                commands = await bot.get_my_commands()
+                for command in commands:
+                    if command['command'] == 'season':
+                        desc = log_time(stamp - minute * 60, form='b_channel')
+                        command['description'] = desc + '—' + desc
+                await bot.set_my_commands(commands)
+                await asyncio.sleep(3600)
+            await asyncio.sleep(1)
+        except IndexError and Exception:
+            await Auth.async_exec()
+
+
+async def changing_season_description():
+    from timer import timer
+    while True:
+        try:
+            commands = await bot.get_my_commands()
+            for command in commands:
+                if command['command'] == 'season':
+                    last_battle_stamp = 0
+                    search = re.search('(.*?)—(.*?)', command['description'])
+                    for battle in google_values:
+                        time_search = re.search(r'(\d{2}) (.*?) 10(\d{2}).Результаты сражений:', battle)
+                        if time_search:
+                            stamp = timer(time_search)
+                            if last_battle_stamp < stamp:
+                                last_battle_stamp = stamp
+                    if search:
+                        desc = search.group(1) + '—' + log_time(last_battle_stamp, form='b_channel')
+                        if command['description'] != desc:
+                            command['description'] = desc
+                            await bot.set_my_commands(commands)
+            await asyncio.sleep(10)
+        except IndexError and Exception:
+            await Auth.async_exec()
+
+
 if __name__ == '__main__':
-    gain = []
+    gain = [battle_to_google, battle_in_google_checker]
+    async_gain = [changing_season_start_description, changing_season_description]
     for thread_element in gain:
         _thread.start_new_thread(thread_element, ())
+    for thread_element in async_gain:
+        dispatcher.loop.create_task(thread_element())
     executor.start_polling(dispatcher)
