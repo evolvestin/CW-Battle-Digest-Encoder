@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 import os
 import re
+import asyncio
+import gspread
 import objects
 import _thread
-import gspread
 import requests
-import asyncio
 from time import sleep
 from aiogram import types
 from bs4 import BeautifulSoup
@@ -53,8 +53,8 @@ def creation_google_values():
 worksheet, google_values = creation_google_values()
 bot = Auth.start_main_bot('async')
 dispatcher = Dispatcher(bot)
-Auth.start_message(stamp1)
 # ====================================================================================
+start_message = Auth.start_message(stamp1)
 
 
 def spacer(col):
@@ -355,6 +355,7 @@ async def repeat_all_messages(message: types.Message):
                             text = objects.bold('Ротация замков в /worldtop')
                             text += '\n' + log_time(starting, code, gmt=0) + code(' - ')
                             text += log_time(ending, code, gmt=0) + '\n' + world_top(starting, ending)
+                            break
             await bot.send_message(message['chat']['id'], text, parse_mode='HTML')
 
         elif message['chat']['id'] == idMe:
@@ -380,7 +381,8 @@ async def changing_season_start_description():
                     if command['command'] == 'season':
                         desc = log_time(stamp - minute * 60, form='b_channel')
                         command['description'] = desc + '—' + desc
-                await bot.set_my_commands(commands)
+                        await bot.set_my_commands(commands)
+                        await Auth.edit_dev_message(start_message, '#new_season ' + code(desc))
                 await asyncio.sleep(3600)
             await asyncio.sleep(1)
         except IndexError and Exception:
@@ -407,6 +409,7 @@ async def changing_season_description():
                         if command['description'] != desc:
                             command['description'] = desc
                             await bot.set_my_commands(commands)
+                            objects.printer('Изменено описание команды /season на' + desc)
             await asyncio.sleep(10)
         except IndexError and Exception:
             await Auth.async_exec()
