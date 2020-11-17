@@ -382,6 +382,7 @@ async def changing_season_start_description():
                         desc = log_time(stamp - minute * 60, form='b_channel')
                         command['description'] = desc + '—' + desc
                         await bot.set_my_commands(commands)
+                        objects.printer('Изменено описание команды /season на ' + desc + '—' + desc)
                         await Auth.edit_dev_message(start_message, '#new_season ' + code(desc))
                 await asyncio.sleep(3600)
             await asyncio.sleep(1)
@@ -409,7 +410,7 @@ async def changing_season_description():
                         if command['description'] != desc:
                             command['description'] = desc
                             await bot.set_my_commands(commands)
-                            objects.printer('Изменено описание команды /season на' + desc)
+                            objects.printer('Изменено описание команды /season на ' + desc)
             await asyncio.sleep(10)
         except IndexError and Exception:
             await Auth.async_exec()
