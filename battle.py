@@ -318,32 +318,32 @@ def world_top(time_start, time_end):
 @dispatcher.message_handler()
 async def repeat_all_messages(message: types.Message):
     try:
+        text = 'ERROR'
         if message['text'].startswith('/summary'):
             modified = re.sub('/summary ', '', message['text'])
             search = re.search('(.*?)-(.*?)\n(.*)', modified)
             if search:
                 starting = stamper(search.group(1), '%d.%m.%Y %H:%M:%S')
                 ending = stamper(search.group(2), '%d.%m.%Y %H:%M:%S')
-                text = search.group(3)
-                if str(starting) != 'False' and str(ending) != 'False':
+                if starting and ending:
+                    text = search.group(3)
                     text += '\n(' + log_time(starting, code, gmt=0) + code(' - ')
                     text += log_time(ending, code, gmt=0) + ')\n' + summary(starting, ending)
-                await bot.send_message(message['chat']['id'], text, parse_mode='HTML')
+            await bot.send_message(message['chat']['id'], text, parse_mode='HTML')
 
         elif message['text'].startswith('/place'):
-            modified = re.sub('/place ', '', message.text)
-            search = re.search('(.+?)-(.+)', modified)
+            modified = re.sub('/place ', '', message['text'])
+            search = re.search('(.*?)-(.*)', modified)
             if search:
-                text = objects.bold('Ротация замков в /worldtop')
                 starting = stamper(search.group(1), '%d.%m.%Y %H:%M:%S')
                 ending = stamper(search.group(2), '%d.%m.%Y %H:%M:%S')
-                if str(starting) != 'False' and str(ending) != 'False':
-                    text += '\n' + log_time(starting - 3 * 60 * 60, code) + code(' - ')
-                    text += log_time(ending - 3 * 60 * 60, code) + '\n' + world_top(starting, ending)
-                await bot.send_message(message['chat']['id'], text, parse_mode='HTML')
+                if starting and ending:
+                    text = objects.bold('Ротация замков в &#47;worldtop')
+                    text += '\n' + log_time(starting, code, gmt=0) + code(' - ')
+                    text += log_time(ending, code, gmt=0) + '\n' + world_top(starting, ending)
+            await bot.send_message(message['chat']['id'], text, parse_mode='HTML')
 
         elif message['text'].startswith('/season'):
-            text = 'ERROR'
             commands = await bot.get_my_commands()
             for command in commands:
                 if command['command'] == 'season':
@@ -352,7 +352,7 @@ async def repeat_all_messages(message: types.Message):
                         starting = stamper(search.group(1), '%d/%m/%Y %H:%M')
                         ending = stamper(search.group(2), '%d/%m/%Y %H:%M')
                         if starting and ending:
-                            text = objects.bold('Ротация замков в /worldtop')
+                            text = objects.bold('Ротация замков в &#47;worldtop')
                             text += '\n' + log_time(starting, code, gmt=0) + code(' - ')
                             text += log_time(ending, code, gmt=0) + '\n' + world_top(starting, ending)
                             break
