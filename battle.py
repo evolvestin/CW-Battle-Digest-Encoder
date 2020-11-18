@@ -12,7 +12,7 @@ from bs4 import BeautifulSoup
 from collections import Counter
 from aiogram.utils import executor
 from aiogram.dispatcher import Dispatcher
-from objects import bold, code, stamper, log_time, html_link
+from objects import bold, code, stamper, log_time
 stamp1 = objects.time_now()
 objects.environmental_files(python=True)
 Auth = objects.AuthCentre(os.environ['TOKEN'])
@@ -20,10 +20,11 @@ Auth = objects.AuthCentre(os.environ['TOKEN'])
 idMe = 396978030
 last_post_id = None
 checker_blocking = None
-castle = '(🖤|🍆|🐢|🌹|🍁|☘|🦇)'
 share_link = 'https://t.me/share/url?url='
 main_address = 'https://t.me/ChatWarsDigest/'
-castle_list = ['🖤', '🍆', '🐢', '🌹', '🍁', '☘', '🦇']
+castle_dict = {'🖤': 'Скала', '🍆': 'Ферма', '🐢': 'Тортуга',
+               '🌹': 'Замок Рассвета', '🍁': 'Амбер', '☘': 'Оплот', '🦇': 'Ночной Замок'}
+castle_search = '(' + '|'.join(castle_dict) + ')'
 character = {
     'со значительным преимуществом': '⚔😎',
     'успешно атаковали защитников': '⚔',
@@ -56,13 +57,6 @@ bot = Auth.start_main_bot('async')
 dispatcher = Dispatcher(bot)
 # ====================================================================================
 start_message = Auth.start_message(stamp1)
-
-
-def spacer(col):
-    space = ''
-    for j in range(col):
-        space += ' '
-    return space
 
 
 def former(text):
@@ -183,7 +177,7 @@ def battle_in_google_checker():
 def summary(time_start, time_end):
     from timer import timer
     castle_db = {}
-    for i in castle_list:
+    for i in [c for c in castle_dict]:
         castle_db[i] = {}
         castle_db[i]['money'] = 0
         castle_db[i]['box'] = 0
@@ -203,11 +197,11 @@ def summary(time_start, time_end):
                 if trophy_search:
                     trophy = re.split('/', trophy_search.group(1))
                     for i in trophy:
-                        search = re.search(castle + r'.+ \+(\d+) 🏆 очков', i)
+                        search = re.search(castle_search + r'.+ \+(\d+) 🏆 очков', i)
                         if search:
                             castle_db[search.group(1)]['trophy'] += int(search.group(2))
                 for string in splited:
-                    search = re.search(castle, string)
+                    search = re.search(castle_search, string)
                     if search:
                         for m in character:
                             if m in string:
@@ -262,58 +256,70 @@ def summary(time_start, time_end):
     return text
 
 
-def world_top(time_start, time_end):
+def world_top_sorted(date_start, date_end):
     from timer import timer
     castle_db = {}
-    for i in castle_list:
+    for i in [c for c in castle_dict]:
         castle_db[i] = {}
         castle_db[i]['trophy'] = 0
         for pos in range(1, 8):
             castle_db[i][pos] = 0
     for battle in reversed(google_values):
         trophy_search = re.search('По итогам сражений замкам начислено:/(.*)', battle)
-        time_search = re.search(r'(\d{2}) (.*?) 10(\d{2}).Результаты сражений:', battle)
-        if time_search:
-            date = timer(time_search) + 3 * 60 * 60
-            if time_start <= date <= time_end:
+        battle_search = re.search(r'(\d{2}) (.*?) 10(\d{2}).Результаты сражений:', battle)
+        if battle_search:
+            if date_start <= (timer(battle_search) + 3 * 60 * 60) <= date_end:
                 if trophy_search:
                     trophy = re.split('/', trophy_search.group(1))
                     for i in trophy:
-                        search = re.search(castle + r'.+ \+(\d+) 🏆 очков', i)
+                        search = re.search(castle_search + r'.+ \+(\d+) 🏆 очков', i)
                         if search:
                             castle_db[search.group(1)]['trophy'] += int(search.group(2))
                 castle_temp = []
-                listed = list(castle_db.items())
-                listed.sort(key=lambda arr: arr[1]['trophy'])
-                for i in listed:
+                for i in sorted(castle_db.items(), key=lambda x: x[1]['trophy'], reverse=True):
                     castle_temp.append(i[0])
-                castle_temp.reverse()
                 for i in castle_temp:
                     castle_db[i][castle_temp.index(i) + 1] += 1
-    max_len_pos = 2
-    castle_temp = []
-    listed = list(castle_db.items())
-    listed.sort(key=lambda arr: arr[1]['trophy'])
-    for i in listed:
-        array = castle_db.get(i[0])
-        castle_temp.append(i[0])
-        for pos in range(1, 8):
-            amount = str(array[pos])
-            if len(amount) > max_len_pos:
-                max_len_pos = len(amount)
+    return sorted(castle_db.items(), key=lambda x: x[1]['trophy'], reverse=True)
+
+
+def true_world_top(date_start, date_end):
     text = '🏅|'
+    max_len_position = 2
+    castle_list = world_top_sorted(date_start, date_end)
+    for castle in castle_list:
+        castle_stats = dict(castle[1])
+        for castle_param in castle_stats:
+            if castle_param != 'trophy':
+                len_position = len(str(castle_stats[castle_param]))
+                if len_position > max_len_position:
+                    max_len_position = len_position
     for i in range(1, 8):
-        text += spacer(max_len_pos - 2) + str(i) + 'м|'
+        text += ' ' * (max_len_position - 2) + str(i) + 'м|'
     text += '🏆\n'
-    for i in reversed(castle_temp):
-        array = castle_db.get(i)
-        text += i + '|'
-        for pos in range(1, 8):
-            amount = str(array[pos])
-            text += spacer(max_len_pos - len(amount)) + amount + '|'
-        if array['trophy'] >= 0:
-            text += str(array['trophy']) + ' \n'
+    for castle in castle_list:
+        text += castle[0] + '|'
+        castle_stats = dict(castle[1])
+        for castle_param in castle_stats:
+            if castle_param != 'trophy':
+                amount = str(castle_stats[castle_param])
+                text += ' ' * (max_len_position - len(amount)) + amount + '|'
+        text += str(castle_stats['trophy']) + ' \n'
     return code(text)
+
+
+def cw_world_top(date_start, date_end):
+    text = '🏅'
+    castle_list = world_top_sorted(date_start, date_end)
+    for i in range(1, len(castle_list) + 1):
+        if i != 1:
+            text += ' ' * 6
+        castle = castle_list[i - 1][0]
+        castle_stats = dict(castle_list[i - 1][1])
+        text += '# ' + str(i) + ' ' + castle + castle_dict.get(castle) + ' '
+        text += bold(castle_stats['trophy']) + ' 🏆 очков\n'
+    text += code('Если нашли ошибку: ') + '@evolvestin'
+    return text
 
 
 @dispatcher.message_handler()
@@ -339,9 +345,22 @@ async def repeat_all_messages(message: types.Message):
                 starting = stamper(search.group(1), '%d.%m.%Y %H:%M:%S')
                 ending = stamper(search.group(2), '%d.%m.%Y %H:%M:%S')
                 if starting and ending:
-                    text = bold('Ротация замков в ') + html_link(share_link + '/worldtop', '/worldtop')
+                    text = bold('Ротация замков в /worldtop')
                     text += '\n' + log_time(starting, code, gmt=0, form=True) + code(' - ')
-                    text += log_time(ending, code, gmt=0) + '\n' + world_top(starting, ending)
+                    text += log_time(ending, code, gmt=0) + '\n' + true_world_top(starting, ending)
+            await bot.send_message(message['chat']['id'], text, parse_mode='HTML')
+
+        elif message['text'].startswith('/worldtop'):
+            commands = await bot.get_my_commands()
+            for command in commands:
+                if command['command'] == 'season':
+                    search = re.search('(.*?)—(.*)', command['description'])
+                    if search:
+                        starting = stamper(search.group(1), '%d/%m/%Y %H:%M')
+                        ending = stamper(search.group(2), '%d/%m/%Y %H:%M')
+                        if starting and ending:
+                            text = cw_world_top(starting, ending)
+                            break
             await bot.send_message(message['chat']['id'], text, parse_mode='HTML')
 
         elif message['text'].startswith('/season'):
@@ -353,9 +372,9 @@ async def repeat_all_messages(message: types.Message):
                         starting = stamper(search.group(1), '%d/%m/%Y %H:%M')
                         ending = stamper(search.group(2), '%d/%m/%Y %H:%M')
                         if starting and ending:
-                            text = bold('Ротация замков в ') + html_link(share_link + '/worldtop', '/worldtop')
+                            text = bold('Ротация замков в /worldtop')
                             text += '\n' + log_time(starting, code, gmt=0, form=True) + code(' - ')
-                            text += log_time(ending, code, gmt=0) + '\n' + world_top(starting, ending)
+                            text += log_time(ending, code, gmt=0) + '\n' + true_world_top(starting, ending)
                             break
             await bot.send_message(message['chat']['id'], text, parse_mode='HTML')
 
