@@ -264,7 +264,7 @@ def world_top_sorted(date_start, date_end):
         castle_db[i]['trophy'] = 0
         for pos in range(1, 8):
             castle_db[i][pos] = 0
-    for battle in reversed(google_values):
+    for battle in google_values:
         trophy_search = re.search('По итогам сражений замкам начислено:/(.*)', battle)
         battle_search = re.search(r'(\d{2}) (.*?) 10(\d{2}).Результаты сражений:', battle)
         if battle_search:
@@ -275,9 +275,7 @@ def world_top_sorted(date_start, date_end):
                         search = re.search(castle_search + r'.+ \+(\d+) 🏆 очков', i)
                         if search:
                             castle_db[search.group(1)]['trophy'] += int(search.group(2))
-                castle_temp = []
-                for i in sorted(castle_db.items(), key=lambda x: x[1]['trophy'], reverse=True):
-                    castle_temp.append(i[0])
+                castle_temp = [i[0] for i in sorted(castle_db.items(), key=lambda x: x[1]['trophy'], reverse=True)]
                 for i in castle_temp:
                     castle_db[i][castle_temp.index(i) + 1] += 1
     return sorted(castle_db.items(), key=lambda x: x[1]['trophy'], reverse=True)
