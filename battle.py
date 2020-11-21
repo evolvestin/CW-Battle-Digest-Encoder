@@ -316,6 +316,7 @@ def true_world_top(date_start, date_end):
 
 
 def average_top(date_start, date_end):
+    castles_by_average = {}
     castle_list = world_top_sorted(date_start, date_end)
     text = text_header(date_start, date_end, 'Среднее место за сезон')
     for castle in castle_list:
@@ -327,8 +328,11 @@ def average_top(date_start, date_end):
                 places_summary += castle_param * castle_stats[castle_param]
                 numbers_battle += castle_stats[castle_param]
         average = round(places_summary / numbers_battle, 2)
-        place = castle_list.index(castle) + 1
-        text += '# ' + str(place) + ' ' + castle[0] + castle_dict[castle[0]] + ' ' + bold(average) + '\n'
+        castles_by_average[castle[0] + castle_dict[castle[0]]] = average
+    castle_list = sorted(castles_by_average.items(), key=lambda x: x[1])
+    for castle in castle_list:
+        place = str(castle_list.index(castle) + 1)
+        text += '# ' + place + ' ' + castle[0] + ' ' + bold(castle[1]) + '\n'
     return text
 
 
