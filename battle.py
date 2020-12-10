@@ -36,22 +36,28 @@ character = {
 
 
 def creation_google_values():
+    from timer import timer
     sheet = gspread.service_account('1.json').open('Digest').worksheet('main')
     raw_values = sheet.col_values(1)
-    values = []
     counter_values = Counter(raw_values)
+    battle_dictionary = {}
+    values = []
     for value in counter_values:
-        values.append(re.sub('️', '', value))
+        battle = re.sub('️', '', value)
+        battle_search = re.search(r'(\d{2}) (.*?) 10(\d{2}).Результаты сражений:', battle)
+        values.append(battle)
+        if battle_search:
+            battle_dictionary[timer(battle_search) + 3 * 60 * 60] = battle
         if counter_values[value] > 1:
             post_id = str(value.split('/')[0])
             text = '\nПовторяется в базе ' + str(counter_values[value]) + \
                 ' раз(а).\nНа данный момент он находится на позиции ' + str(raw_values.index(value)) + ' в таблице.'
             text = code('Элемент с id:') + objects.html_link(main_address + post_id, post_id) + code(text)
             Auth.send_dev_message(text, tag=None)
-    return sheet, values
+    return sheet, values, battle_dictionary
 
 
-worksheet, google_values = creation_google_values()
+worksheet, google_values, google_dict = creation_google_values()
 bot = Auth.start_main_bot('async')
 dispatcher = Dispatcher(bot)
 # ====================================================================================
@@ -73,7 +79,8 @@ def former(text):
 
 
 def battle_to_google():
-    global worksheet, last_post_id, google_values
+    from timer import timer
+    global worksheet, google_dict, last_post_id, google_values
     value = re.sub(r'\D', '', google_values[-1].split('/')[0])
     if len(value) > 0:
         last_post_id = int(value) + 1
@@ -85,7 +92,8 @@ def battle_to_google():
                     text = former(requests.get(print_text + '?embed=1').text)
                     battle_search = re.search(r'(\d{2}) (.*?) 10(\d{2}).Результаты сражений:', text)
                     if battle_search:
-                        if re.sub('️', '', text) not in google_values:
+                        battle = re.sub('️', '', text)
+                        if battle not in google_values:
                             row = str(len(google_values) + 1)
                             try:
                                 battle_range = worksheet.range('A' + row + ':A' + row)
@@ -96,8 +104,9 @@ def battle_to_google():
                                 battle_range = worksheet.range('A' + row + ':A' + row)
                                 battle_range[0].value = text
                                 worksheet.update_cells(battle_range)
-                            google_values.append(re.sub('️', '', text))
+                            google_dict[timer(battle_search) + 3 * 60 * 60] = battle
                             objects.printer(print_text + ' Добавил битву в таблицу')
+                            google_values.append(battle)
                             last_post_id += 1
                             sleep(1.2)
                         else:
@@ -124,8 +133,9 @@ def battle_to_google():
 
 
 def battle_in_google_checker():
+    from timer import timer
     from copy import deepcopy
-    global worksheet, checker_blocking
+    global worksheet, google_dict, google_values, checker_blocking
     while last_post_id is None:
         pass
     if last_post_id:
@@ -140,7 +150,8 @@ def battle_in_google_checker():
             battle_search = re.search(r'(\d{2}) (.*?) 10(\d{2}).Результаты сражений:', text)
             if battle_search:
                 print_text += ' Проверил'
-                if re.sub('️', '', text) not in google_values:
+                battle = re.sub('️', '', text)
+                if battle not in google_values:
                     checker_blocking = True
                     sleep(10)
                     row = str(len(google_values) + 1)
@@ -148,6 +159,8 @@ def battle_in_google_checker():
                     battle_range = worksheet.range('A' + row + ':A' + row)
                     battle_range[0].value = text
                     worksheet.update_cells(battle_range)
+                    google_dict[timer(battle_search) + 3 * 60 * 60] = battle
+                    google_values.append(battle)
                     sleep(10)
                     checker_blocking = None
                     print_text += ', добавил в таблицу пропавшую битву'
@@ -256,27 +269,24 @@ def summary(date_start, date_end, text):
 
 
 def world_top_sorted(date_start, date_end):
-    from timer import timer
     castle_db = {}
     for i in [c for c in castle_dict]:
         castle_db[i] = {}
         castle_db[i]['trophy'] = 0
         for pos in range(1, 8):
             castle_db[i][pos] = 0
-    for battle in google_values:
-        trophy_search = re.search('По итогам сражений замкам начислено:/(.*)', battle)
-        battle_search = re.search(r'(\d{2}) (.*?) 10(\d{2}).Результаты сражений:', battle)
-        if battle_search:
-            if date_start <= (timer(battle_search) + 3 * 60 * 60) <= date_end:
-                if trophy_search:
-                    trophy = re.split('/', trophy_search.group(1))
-                    for i in trophy:
-                        search = re.search(castle_search + r'.+ \+(\d+) 🏆 очков', i)
-                        if search:
-                            castle_db[search.group(1)]['trophy'] += int(search.group(2))
-                castle_temp = [i[0] for i in sorted(castle_db.items(), key=lambda x: x[1]['trophy'], reverse=True)]
-                for i in castle_temp:
-                    castle_db[i][castle_temp.index(i) + 1] += 1
+    for battle_date in sorted(google_dict):
+        trophy_search = re.search('По итогам сражений замкам начислено:/(.*)', google_dict[battle_date])
+        if date_start <= battle_date <= date_end:
+            if trophy_search:
+                trophy = re.split('/', trophy_search.group(1))
+                for i in trophy:
+                    search = re.search(castle_search + r'.+ \+(\d+) 🏆 очков', i)
+                    if search:
+                        castle_db[search.group(1)]['trophy'] += int(search.group(2))
+            castle_temp = [i[0] for i in sorted(castle_db.items(), key=lambda x: x[1]['trophy'], reverse=True)]
+            for i in castle_temp:
+                castle_db[i][castle_temp.index(i) + 1] += 1
     return sorted(castle_db.items(), key=lambda x: x[1]['trophy'], reverse=True)
 
 
