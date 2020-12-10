@@ -15,7 +15,7 @@ from aiogram.dispatcher import Dispatcher
 from objects import bold, code, stamper, log_time
 stamp1 = objects.time_now()
 objects.environmental_files(python=True)
-Auth = objects.AuthCentre(os.environ['TOKEN'], dev_chat_id=396978030)
+Auth = objects.AuthCentre(os.environ['TOKEN'])
 # ====================================================================================
 idMe = 396978030
 last_post_id = None
@@ -525,10 +525,8 @@ async def changing_season_description():
 
 
 if __name__ == '__main__':
-    #gain = [battle_to_google, battle_in_google_checker]
-    gain = []
-    #async_gain = [changing_season_description, changing_season_start_description]
-    async_gain = []
+    gain = [battle_to_google, battle_in_google_checker]
+    async_gain = [changing_season_description, changing_season_start_description]
     for thread_element in gain:
         _thread.start_new_thread(thread_element, ())
     for thread_element in async_gain:
