@@ -20,7 +20,6 @@ Auth = objects.AuthCentre(os.environ['TOKEN'])
 idMe = 396978030
 last_post_id = None
 checker_blocking = None
-share_link = 'https://t.me/share/url?url='
 main_address = 'https://t.me/ChatWarsDigest/'
 castle_dict = {'🖤': 'Скала', '🍆': 'Ферма', '🐢': 'Тортуга',
                '🌹': 'Замок Рассвета', '🍁': 'Амбер', '☘': 'Оплот', '🦇': 'Ночной Замок'}
