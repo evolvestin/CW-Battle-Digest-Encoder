@@ -15,10 +15,11 @@ from aiogram.dispatcher import Dispatcher
 from objects import bold, code, stamper, log_time
 stamp1 = objects.time_now()
 objects.environmental_files(python=True)
-Auth = objects.AuthCentre(os.environ['TOKEN'])
+Auth = objects.AuthCentre(os.environ['TOKEN'], dev_chat_id=396978030)
 # ====================================================================================
 idMe = 396978030
 last_post_id = None
+async_blocking = None
 checker_blocking = None
 main_address = 'https://t.me/ChatWarsDigest/'
 castle_dict = {'🖤': 'Скала', '🍆': 'Ферма', '🐢': 'Тортуга',
@@ -38,26 +39,28 @@ character = {
 def creation_google_values():
     from timer import timer
     sheet = gspread.service_account('1.json').open('Digest').worksheet('main')
+    top_sheet = gspread.service_account('2.json').open('Digest').worksheet('top')
+    top_values = [re.sub('️', '', value) for value in top_sheet.col_values(1)]
     raw_values = sheet.col_values(1)
     counter_values = Counter(raw_values)
-    battle_dictionary = {}
+    battles = {}
     values = []
     for value in counter_values:
         battle = re.sub('️', '', value)
         battle_search = re.search(r'(\d{2}) (.*?) 10(\d{2}).Результаты сражений:', battle)
         values.append(battle)
         if battle_search:
-            battle_dictionary[timer(battle_search) + 3 * 60 * 60] = battle
+            battles[timer(battle_search) + 3 * 60 * 60] = battle
         if counter_values[value] > 1:
             post_id = str(value.split('/')[0])
             text = '\nПовторяется в базе ' + str(counter_values[value]) + \
                 ' раз(а).\nНа данный момент он находится на позиции ' + str(raw_values.index(value)) + ' в таблице.'
             text = code('Элемент с id:') + objects.html_link(main_address + post_id, post_id) + code(text)
             Auth.send_dev_message(text, tag=None)
-    return sheet, values, battle_dictionary
+    return sheet, battles, values, top_sheet, top_values
 
 
-worksheet, google_values, google_dict = creation_google_values()
+worksheet, google_dict, google_values, top_worksheet, google_top_values = creation_google_values()
 bot = Auth.start_main_bot('async')
 dispatcher = Dispatcher(bot)
 # ====================================================================================
@@ -361,6 +364,7 @@ def cw_world_top(date_start, date_end):
 
 @dispatcher.message_handler()
 async def repeat_all_messages(message: types.Message):
+    global top_worksheet, async_blocking, google_top_values
     try:
         text = 'ERROR'
         if message['text'].lower() in ['/season', '/average', '/worldtop']:
@@ -414,6 +418,53 @@ async def repeat_all_messages(message: types.Message):
                     else:
                         text = command_function(starting, ending)
             await bot.send_message(message['chat']['id'], text, parse_mode='HTML')
+
+        elif message['forward_from']:
+            battle_stamp = 1606842000
+            if message['forward_from']['username'] == 'ChatWarsBot':
+                if message['text'].startswith('🏅'):
+                    if dict(message).get('forward_date') > battle_stamp:
+                        while battle_stamp < dict(message).get('forward_date'):
+                            battle_stamp += 8 * 60 * 60
+
+                        while async_blocking is True:
+                            await asyncio.sleep(0.1)
+
+                        battle_stamp -= 8 * 60 * 60
+                        top_text = str(battle_stamp) + '/' + re.sub('\n', '/', message['text'])
+                        text = bold('Битва') + ' за ' + log_time(battle_stamp, gmt=0, tag=code, form=True) + '\n'
+                        top_value = re.sub('️', '', top_text)
+                        if top_value not in google_top_values:
+                            async_blocking = True
+                            text += 'Добавлена в базу'
+                            row = str(len(google_top_values) + 1)
+                            try:
+                                top_range = top_worksheet.range('A' + row + ':A' + row)
+                                top_range[0].value = top_text
+                                top_worksheet.update_cells(top_range)
+                            except IndexError and Exception:
+                                top_worksheet = gspread.service_account('2.json').open('Digest').worksheet('main')
+                                top_range = worksheet.range('A' + row + ':A' + row)
+                                top_range[0].value = top_text
+                                top_worksheet.update_cells(top_range)
+                            google_top_values.append(top_value)
+                            text += bold(' успешно.')
+                            await asyncio.sleep(2)
+                            async_blocking = None
+                        else:
+                            text += bold('Уже находится в базе') + ', но спасибо 😀.'
+                    else:
+                        text = bold('Древние') + ' битвы обходились без нужды в ' + bold('WORLDTOP') + \
+                               ', так что не стоит, спасибо 😀.'
+                else:
+                    link = objects.html_link('https://t.me/share/url?url=/worldtop', '/worldtop')
+                    text = 'Это не очень похоже на ' + bold('WORLDTOP') + ' из CW.\n'
+                    text += 'Пожалуйста, отправь в CW ' + bold(link) + ' (жми) и потом форварди сюда.'
+            else:
+                text = 'Это не от CW форвард, ' + bold('дурень.')
+
+            await bot.send_message(message['chat']['id'], text, parse_mode='HTML',
+                                   reply_to_message_id=message['message_id'])
 
         elif message['chat']['id'] == idMe:
             if message.text.startswith('/log'):
@@ -474,8 +525,10 @@ async def changing_season_description():
 
 
 if __name__ == '__main__':
-    gain = [battle_to_google, battle_in_google_checker]
-    async_gain = [changing_season_description, changing_season_start_description]
+    #gain = [battle_to_google, battle_in_google_checker]
+    gain = []
+    #async_gain = [changing_season_description, changing_season_start_description]
+    async_gain = []
     for thread_element in gain:
         _thread.start_new_thread(thread_element, ())
     for thread_element in async_gain:
