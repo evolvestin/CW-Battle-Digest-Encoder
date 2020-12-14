@@ -60,6 +60,7 @@ def creation_google_values():
     return sheet, battles, values, top_sheet, top_values
 
 
+battle_standard_stamp = 1606842000  # 01.12.2020 17:00 Первая битва, после которой стало необходимо собирать /worldtop
 worksheet, google_dict, google_values, top_worksheet, google_top_values = creation_google_values()
 bot = Auth.start_main_bot('async')
 dispatcher = Dispatcher(bot)
@@ -420,7 +421,7 @@ async def repeat_all_messages(message: types.Message):
             await bot.send_message(message['chat']['id'], text, parse_mode='HTML')
 
         elif message['forward_from']:
-            battle_stamp = 1606842000
+            battle_stamp = battle_standard_stamp - 3 * 60 * 60  # Отнимаем 3 часа, чтобы соотнести время битвы по GMT
             if message['forward_from']['username'] == 'ChatWarsBot':
                 if message['text'].startswith('🏅'):
                     if dict(message).get('forward_date') > battle_stamp:
@@ -432,7 +433,7 @@ async def repeat_all_messages(message: types.Message):
 
                         battle_stamp -= 8 * 60 * 60
                         top_text = str(battle_stamp) + '/' + re.sub('\n', '/', message['text'])
-                        text = bold('Битва') + ' за ' + log_time(battle_stamp, gmt=0, tag=code, form=True) + '\n'
+                        text = bold('Битва') + ' за ' + log_time(battle_stamp, gmt=3, tag=code, form=True) + '\n'
                         top_value = re.sub('️', '', top_text)
                         if top_value not in google_top_values:
                             async_blocking = True
