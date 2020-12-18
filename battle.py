@@ -400,31 +400,34 @@ def cw_world_top(date_start, date_end):
     return text + code('Для обновления: ') + objects.html_link(share_link, '/worldtop')
 
 
+@dispatcher.message_handler(commands=['/season', '/average', '/worldtop'])
+async def process_start_command(message: types.Message):
+    text = 'ERROR'
+    commands = await bot.get_my_commands()
+    if message['text'].lower().startswith('/season'):
+        command_function = true_world_top
+    elif message['text'].lower().startswith('/worldtop'):
+        command_function = cw_world_top
+    else:
+        command_function = average_top
+    for command in commands:
+        if command['command'] == 'season':
+            search = re.search('(.*?)—(.*)', command['description'])
+            if search:
+                starting = stamper(search.group(1), '%d/%m/%Y %H:%M') - 3 * 60 * 60
+                ending = stamper(search.group(2), '%d/%m/%Y %H:%M') - 3 * 60 * 60
+                if starting and ending:
+                    text = command_function(starting, ending)
+                    break
+    await bot.send_message(message['chat']['id'], text, parse_mode='HTML')
+
+
 @dispatcher.message_handler()
 async def repeat_all_messages(message: types.Message):
     global top_dict, top_worksheet, async_blocking, google_top_values
     try:
         text = 'ERROR'
-        if message['text'].lower() in ['/season', '/average', '/worldtop']:
-            commands = await bot.get_my_commands()
-            if message['text'].lower().startswith('/season'):
-                command_function = true_world_top
-            elif message['text'].lower().startswith('/worldtop'):
-                command_function = cw_world_top
-            else:
-                command_function = average_top
-            for command in commands:
-                if command['command'] == 'season':
-                    search = re.search('(.*?)—(.*)', command['description'])
-                    if search:
-                        starting = stamper(search.group(1), '%d/%m/%Y %H:%M') - 3 * 60 * 60
-                        ending = stamper(search.group(2), '%d/%m/%Y %H:%M') - 3 * 60 * 60
-                        if starting and ending:
-                            text = command_function(starting, ending)
-                            break
-            await bot.send_message(message['chat']['id'], text, parse_mode='HTML')
-
-        elif message['text'].lower().startswith(('/summary', '/place', '/season', '/average', '/worldtop')):
+        if message['text'].lower().startswith(('/summary', '/place', '/season', '/average', '/worldtop')):
             modified = re.sub('/(summary|place|season|average|worldtop) ', '', message['text'].lower(), 1)
             modified = re.sub(r'[./\\]+', '.', modified)
             modified = re.sub('\'', '&#39;', modified)
@@ -458,6 +461,9 @@ async def repeat_all_messages(message: types.Message):
             await bot.send_message(message['chat']['id'], text, parse_mode='HTML')
 
         elif message['forward_from']:
+            send_reply = True
+            if message['chat']['id'] < 0:
+                send_reply = False
             battle_stamp = battle_standard_stamp
             if message['forward_from']['username'] == 'ChatWarsBot':
                 if message['text'].startswith('🏅'):
@@ -508,8 +514,9 @@ async def repeat_all_messages(message: types.Message):
             else:
                 text = 'Это не от CW форвард, ' + bold('дурень.')
 
-            await bot.send_message(message['chat']['id'], text, parse_mode='HTML',
-                                   reply_to_message_id=message['message_id'])
+            if send_reply:
+                await bot.send_message(message['chat']['id'], text, parse_mode='HTML',
+                                       reply_to_message_id=message['message_id'])
 
         elif message['chat']['id'] == idMe:
             if message.text.startswith('/log'):
