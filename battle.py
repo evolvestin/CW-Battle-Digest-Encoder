@@ -400,8 +400,7 @@ def cw_world_top(date_start, date_end):
     return text + code('Для обновления: ') + objects.html_link(share_link, '/worldtop')
 
 
-@dispatcher.message_handler(commands=['/season', '/average', '/worldtop'])
-async def process_start_command(message: types.Message):
+async def seasoned(message):
     text = 'ERROR'
     commands = await bot.get_my_commands()
     if message['text'].lower().startswith('/season'):
@@ -427,38 +426,46 @@ async def repeat_all_messages(message: types.Message):
     global top_dict, top_worksheet, async_blocking, google_top_values
     try:
         text = 'ERROR'
-        if message['text'].lower().startswith(('/summary', '/place', '/season', '/average', '/worldtop')):
-            modified = re.sub('/(summary|place|season|average|worldtop) ', '', message['text'].lower(), 1)
-            modified = re.sub(r'[./\\]+', '.', modified)
-            modified = re.sub('\'', '&#39;', modified)
-            modified = re.sub('[—-]+', '-', modified)
-            modified = objects.html_secure(modified)
-            modified = re.sub(r'\.+', '.', modified)
-            modified = re.sub('\n+', '\n', modified)
-            modified = re.sub(' +', ' ', modified)
-            if message['text'].lower().startswith('/summary'):
-                search_fraze = '(.*?)-(.*?)\n(.*)'
-                command_function = summary
+        if message['text'].lower() in ['/season', '/average', '/worldtop']:
+            await seasoned(message)
+
+        elif message['text'].lower().startswith(('/summary', '/place', '/season', '/average', '/worldtop')):
+            bot_username = Auth.get_me.get('username').lower()
+            command_list = [command + '@' + bot_username for command in ['/season', '/average', '/worldtop']]
+            if message['text'].lower() in command_list:
+                await seasoned(message)
             else:
-                modified = re.sub('\n', '', modified)
-                command_function = true_world_top
-                search_fraze = '(.*?)-(.*)'
+                modified = re.sub('/(summary|place|season|average|worldtop) ', '', message['text'].lower(), 1)
+                modified = re.sub(r'[./\\]+', '.', modified)
+                modified = re.sub('\'', '&#39;', modified)
+                modified = re.sub('[—-]+', '-', modified)
+                modified = objects.html_secure(modified)
+                modified = re.sub(r'\.+', '.', modified)
+                modified = re.sub('\n+', '\n', modified)
+                modified = re.sub(' +', ' ', modified)
+                if message['text'].lower().startswith('/summary'):
+                    search_fraze = '(.*?)-(.*?)\n(.*)'
+                    command_function = summary
+                else:
+                    modified = re.sub('\n', '', modified)
+                    command_function = true_world_top
+                    search_fraze = '(.*?)-(.*)'
 
-            if message['text'].lower().startswith('/average'):
-                command_function = average_top
-            elif message['text'].lower().startswith('/worldtop'):
-                command_function = cw_world_top
+                if message['text'].lower().startswith('/average'):
+                    command_function = average_top
+                elif message['text'].lower().startswith('/worldtop'):
+                    command_function = cw_world_top
 
-            search = re.search(search_fraze, modified)
-            if search:
-                starting = stamper(search.group(1), '%d.%m.%Y %H:%M') - 3 * 60 * 60
-                ending = stamper(search.group(2), '%d.%m.%Y %H:%M') - 3 * 60 * 60
-                if starting and ending:
-                    if message['text'].lower().startswith('/summary'):
-                        text = command_function(starting, ending, search.group(3))
-                    else:
-                        text = command_function(starting, ending)
-            await bot.send_message(message['chat']['id'], text, parse_mode='HTML')
+                search = re.search(search_fraze, modified)
+                if search:
+                    starting = stamper(search.group(1), '%d.%m.%Y %H:%M') - 3 * 60 * 60
+                    ending = stamper(search.group(2), '%d.%m.%Y %H:%M') - 3 * 60 * 60
+                    if starting and ending:
+                        if message['text'].lower().startswith('/summary'):
+                            text = command_function(starting, ending, search.group(3))
+                        else:
+                            text = command_function(starting, ending)
+                await bot.send_message(message['chat']['id'], text, parse_mode='HTML')
 
         elif message['forward_from']:
             send_reply = True
