@@ -24,6 +24,7 @@ checker_blocking = None
 main_address = 'https://t.me/ChatWarsDigest/'
 castle_dict = {'🖤': 'Скала', '🍆': 'Ферма', '🐢': 'Тортуга',
                '🌹': 'Замок Рассвета', '🍁': 'Амбер', '☘': 'Оплот', '🦇': 'Ночной Замок'}
+castle_names_search = '(' + '|'.join(castle_dict.values()) + ')'
 castle_search = '(' + '|'.join(castle_dict) + ')'
 character = {
     'со значительным преимуществом': '⚔😎',
@@ -36,32 +37,57 @@ character = {
 }
 
 
+def worldtop_encoder(top):
+    response_dict = {}
+    response_stamp = 0
+    top = re.sub('[️🏅]', '', re.sub(r'\s+', ' ', top))
+    top = re.sub(castle_names_search, '', top).split('/')
+    if len(top):
+        text_stamp = re.sub(r'\D', '', top[0])
+        if len(text_stamp):
+            response_stamp = int(text_stamp)
+            for string in top:
+                search = re.search(r'#\s\d\s(.*?)\s(\d+)\s🏆 очков', string)
+                if search:
+                    response_dict[search.group(1)] = int(search.group(2))
+    return response_stamp, response_dict
+
+
 def creation_google_values():
     from timer import timer
-    sheet = gspread.service_account('1.json').open('Digest').worksheet('main')
+    battle_sheet = gspread.service_account('1.json').open('Digest').worksheet('main')
     top_sheet = gspread.service_account('2.json').open('Digest').worksheet('top')
-    top_values = [re.sub('️', '', value) for value in top_sheet.col_values(1)]
-    raw_values = sheet.col_values(1)
-    counter_values = Counter(raw_values)
+    battle_values = battle_sheet.col_values(1)
+    top_values = top_sheet.col_values(1)
     battles = {}
-    values = []
-    for value in counter_values:
-        battle = re.sub('️', '', value)
-        battle_search = re.search(r'(\d{2}) (.*?) 10(\d{2}).Результаты сражений:', battle)
-        values.append(battle)
-        if battle_search:
-            battles[timer(battle_search) + 3 * 60 * 60] = battle
-        if counter_values[value] > 1:
-            post_id = str(value.split('/')[0])
-            text = '\nПовторяется в базе ' + str(counter_values[value]) + \
-                ' раз(а).\nНа данный момент он находится на позиции ' + str(raw_values.index(value)) + ' в таблице.'
-            text = code('Элемент с id:') + objects.html_link(main_address + post_id, post_id) + code(text)
-            Auth.send_dev_message(text, tag=None)
-    return sheet, battles, values, top_sheet, top_values
+    tops = {}
+    for array in [Counter(battle_values), Counter(top_values)]:
+        for value in array:
+            battle_search = re.search(r'(\d{2}) (.*?) 10(\d{2}).Результаты сражений:', value)
+            if battle_search:
+                indexer = battle_values
+                post_id = str(value.split('/')[0])
+                battles[timer(battle_search)] = re.sub('️', '', value)
+                except_text = code('Element id:') + objects.html_link(main_address + post_id, post_id)
+            else:
+                indexer = top_values
+                stamp, encoded = worldtop_encoder(value)
+                except_text = code('Element ') + log_time(stamp, code, form='normal')
+                if tops.get(stamp) is None:
+                    tops[stamp] = encoded
+                else:
+                    for castle in tops[stamp]:
+                        if tops[stamp][castle] < encoded[castle]:
+                            tops[stamp] = encoded
+                            break
+            if array[value] > 1:
+                text = '\nRepeating in base ' + str(array[value]) + ' times.\nPosition '
+                Auth.send_dev_message(except_text + code(text + str(indexer.index(value)) + ' in table.'), tag=None)
+    return battle_sheet, battles, battle_values, top_sheet, tops, top_values
 
 
-battle_standard_stamp = 1606842000  # 01.12.2020 17:00 Первая битва, после которой стало необходимо собирать /worldtop
-worksheet, google_dict, google_values, top_worksheet, google_top_values = creation_google_values()
+battle_standard_stamp = 1606831200  # 01.12.2020 17:00 Первая битва, после которой стало необходимо собирать /worldtop
+worksheet, google_dict, google_values, top_worksheet, top_dict, google_top_values = creation_google_values()
 bot = Auth.start_main_bot('async')
 dispatcher = Dispatcher(bot)
 # ====================================================================================
@@ -93,30 +119,29 @@ def battle_to_google():
             try:
                 if checker_blocking is None:
                     print_text = main_address + str(last_post_id)
-                    text = former(requests.get(print_text + '?embed=1').text)
-                    battle_search = re.search(r'(\d{2}) (.*?) 10(\d{2}).Результаты сражений:', text)
+                    battle = former(requests.get(print_text + '?embed=1').text)
+                    battle_search = re.search(r'(\d{2}) (.*?) 10(\d{2}).Результаты сражений:', battle)
                     if battle_search:
-                        battle = re.sub('️', '', text)
                         if battle not in google_values:
                             row = str(len(google_values) + 1)
                             try:
                                 battle_range = worksheet.range('A' + row + ':A' + row)
-                                battle_range[0].value = text
+                                battle_range[0].value = battle
                                 worksheet.update_cells(battle_range)
                             except IndexError and Exception:
                                 worksheet = gspread.service_account('1.json').open('Digest').worksheet('main')
                                 battle_range = worksheet.range('A' + row + ':A' + row)
-                                battle_range[0].value = text
+                                battle_range[0].value = battle
                                 worksheet.update_cells(battle_range)
-                            google_dict[timer(battle_search) + 3 * 60 * 60] = battle
                             objects.printer(print_text + ' Добавил битву в таблицу')
+                            google_dict[timer(battle_search)] = re.sub('️', '', battle)
                             google_values.append(battle)
                             last_post_id += 1
                             sleep(1.2)
                         else:
                             objects.printer(print_text + ' Битва уже была в таблице')
                             last_post_id += 1
-                    elif text == 'False':
+                    elif battle == 'False':
                         if false_barrier < 4:
                             false_barrier += 1
                             last_post_id += 1
@@ -150,27 +175,26 @@ def battle_in_google_checker():
     while True:
         try:
             print_text = main_address + str(check_id)
-            text = former(requests.get(print_text + '?embed=1').text)
-            battle_search = re.search(r'(\d{2}) (.*?) 10(\d{2}).Результаты сражений:', text)
+            battle = former(requests.get(print_text + '?embed=1').text)
+            battle_search = re.search(r'(\d{2}) (.*?) 10(\d{2}).Результаты сражений:', battle)
             if battle_search:
                 print_text += ' Проверил'
-                battle = re.sub('️', '', text)
                 if battle not in google_values:
                     checker_blocking = True
                     sleep(10)
                     row = str(len(google_values) + 1)
                     worksheet = gspread.service_account('1.json').open('Digest').worksheet('main')
                     battle_range = worksheet.range('A' + row + ':A' + row)
-                    battle_range[0].value = text
+                    battle_range[0].value = battle
                     worksheet.update_cells(battle_range)
-                    google_dict[timer(battle_search) + 3 * 60 * 60] = battle
+                    google_dict[timer(battle_search)] = re.sub('️', '', battle)
                     google_values.append(battle)
                     sleep(10)
                     checker_blocking = None
                     print_text += ', добавил в таблицу пропавшую битву'
                 objects.printer(print_text)
                 check_id -= 1
-            elif text == 'False':
+            elif battle == 'False':
                 if false_barrier < 4:
                     false_barrier += 1
                     check_id -= 1
@@ -208,7 +232,7 @@ def summary(date_start, date_end, text):
         soup = re.sub('//По итогам сражений замкам начислено:.+', '', soup)
         split = re.split('//', soup)
         if time_search:
-            date = timer(time_search) + 3 * 60 * 60
+            date = timer(time_search)
             if date_start <= date <= date_end:
                 if trophy_search:
                     trophy = re.split('/', trophy_search.group(1))
@@ -274,38 +298,48 @@ def summary(date_start, date_end, text):
 
 def world_top_sorted(date_start, date_end):
     castle_db = {}
-    for i in [c for c in castle_dict]:
-        castle_db[i] = {}
-        castle_db[i]['trophy'] = 0
-        for pos in range(1, 8):
-            castle_db[i][pos] = 0
+    additions = {}
+    for castle in [c for c in castle_dict]:
+        additions[castle] = 0
+        castle_db[castle] = {}
+        castle_db[castle]['trophy'] = 0
+        for position in range(1, 8):
+            castle_db[castle][position] = 0
     for battle_date in sorted(google_dict):
         trophy_search = re.search('По итогам сражений замкам начислено:/(.*)', google_dict[battle_date])
         if date_start <= battle_date <= date_end:
+            battle_top_dict = top_dict.get(battle_date)
             if trophy_search:
                 trophy = re.split('/', trophy_search.group(1))
                 for i in trophy:
                     search = re.search(castle_search + r'.+ \+(\d+) 🏆 очков', i)
                     if search:
                         castle_db[search.group(1)]['trophy'] += int(search.group(2))
+            if battle_top_dict:
+                for castle in battle_top_dict:
+                    trophy_from_top = battle_top_dict[castle]
+                    trophy_from_battle = castle_db[castle]['trophy']
+                    if trophy_from_top > trophy_from_battle:
+                        additions[castle] += trophy_from_top - trophy_from_battle
+                        castle_db[castle]['trophy'] = trophy_from_top
             castle_temp = [i[0] for i in sorted(castle_db.items(), key=lambda x: x[1]['trophy'], reverse=True)]
             for i in castle_temp:
                 castle_db[i][castle_temp.index(i) + 1] += 1
-    return sorted(castle_db.items(), key=lambda x: x[1]['trophy'], reverse=True)
+    return additions, sorted(castle_db.items(), key=lambda x: x[1]['trophy'], reverse=True)
 
 
 def text_header(date_start, date_end, text, time_in_brackets=False):
     brackets = ['', '']
     if time_in_brackets:
         brackets = ['&#40;', '&#41;']
-    text = bold(text) + '\n' + brackets[0] + log_time(date_start, code, gmt=0, form='au_normal') + code(' - ')
-    return text + log_time(date_end, code, gmt=0, form='au_normal') + brackets[1] + '\n'
+    time_frame = [log_time(value, gmt=3, form='au_normal') for value in [date_start, date_end]]
+    return bold(text) + '\n' + brackets[0] + code(' - '.join(time_frame)) + brackets[1] + '\n'
 
 
 def true_world_top(date_start, date_end):
     text = '🏅|'
     max_len_position = 2
-    castle_list = world_top_sorted(date_start, date_end)
+    additions, castle_list = world_top_sorted(date_start, date_end)
     title = text_header(date_start, date_end, 'Ротация замков в /worldtop')
     for castle in castle_list:
         castle_stats = dict(castle[1])
@@ -330,7 +364,7 @@ def true_world_top(date_start, date_end):
 
 def average_top(date_start, date_end):
     castles_by_average = {}
-    castle_list = world_top_sorted(date_start, date_end)
+    additions, castle_list = world_top_sorted(date_start, date_end)
     text = text_header(date_start, date_end, 'Среднее место за сезон')
     for castle in castle_list:
         places_summary = 0
@@ -351,21 +385,24 @@ def average_top(date_start, date_end):
 
 def cw_world_top(date_start, date_end):
     text = '🏅'
-    castle_list = world_top_sorted(date_start, date_end)
-    for i in range(1, len(castle_list) + 1):
-        if i != 1:
+    share_link = 'https://t.me/share/url?url=/worldtop'
+    additions, castle_list = world_top_sorted(date_start, date_end)
+    for place in range(1, len(castle_list) + 1):
+        addition = ''
+        castle = castle_list[place - 1][0]
+        castle_stats = dict(castle_list[place - 1][1])
+        if place != 1:
             text += ' ' * 5
-        castle = castle_list[i - 1][0]
-        castle_stats = dict(castle_list[i - 1][1])
-        text += '# ' + str(i) + ' ' + castle + castle_dict.get(castle) + ' '
-        text += bold(castle_stats['trophy']) + ' 🏆 очков\n'
-    text += code('Если нашли ошибку: ') + '@evolvestin'
-    return text
+        if additions[castle] > 0:
+            addition = code('+' + str(additions[castle]))
+        text += '# ' + str(place) + ' ' + castle + castle_dict.get(castle)
+        text += ' ' + bold(castle_stats['trophy']) + addition + ' 🏆 очков\n'
+    return text + code('Для обновления: ') + objects.html_link(share_link, '/worldtop')
 
 
 @dispatcher.message_handler()
 async def repeat_all_messages(message: types.Message):
-    global top_worksheet, async_blocking, google_top_values
+    global top_dict, top_worksheet, async_blocking, google_top_values
     try:
         text = 'ERROR'
         if message['text'].lower() in ['/season', '/average', '/worldtop']:
@@ -380,8 +417,8 @@ async def repeat_all_messages(message: types.Message):
                 if command['command'] == 'season':
                     search = re.search('(.*?)—(.*)', command['description'])
                     if search:
-                        starting = stamper(search.group(1), '%d/%m/%Y %H:%M')
-                        ending = stamper(search.group(2), '%d/%m/%Y %H:%M')
+                        starting = stamper(search.group(1), '%d/%m/%Y %H:%M') - 3 * 60 * 60
+                        ending = stamper(search.group(2), '%d/%m/%Y %H:%M') - 3 * 60 * 60
                         if starting and ending:
                             text = command_function(starting, ending)
                             break
@@ -411,8 +448,8 @@ async def repeat_all_messages(message: types.Message):
 
             search = re.search(search_fraze, modified)
             if search:
-                starting = stamper(search.group(1), '%d.%m.%Y %H:%M')
-                ending = stamper(search.group(2), '%d.%m.%Y %H:%M')
+                starting = stamper(search.group(1), '%d.%m.%Y %H:%M') - 3 * 60 * 60
+                ending = stamper(search.group(2), '%d.%m.%Y %H:%M') - 3 * 60 * 60
                 if starting and ending:
                     if message['text'].lower().startswith('/summary'):
                         text = command_function(starting, ending, search.group(3))
@@ -421,7 +458,7 @@ async def repeat_all_messages(message: types.Message):
             await bot.send_message(message['chat']['id'], text, parse_mode='HTML')
 
         elif message['forward_from']:
-            battle_stamp = battle_standard_stamp - 3 * 60 * 60  # Отнимаем 3 часа, чтобы соотнести время битвы по GMT
+            battle_stamp = battle_standard_stamp
             if message['forward_from']['username'] == 'ChatWarsBot':
                 if message['text'].startswith('🏅'):
                     if dict(message).get('forward_date') > battle_stamp:
@@ -434,11 +471,11 @@ async def repeat_all_messages(message: types.Message):
                         battle_stamp -= 8 * 60 * 60
                         top_text = str(battle_stamp) + '/' + re.sub('\n', '/', message['text'])
                         text = bold('Битва') + ' за ' + log_time(battle_stamp, gmt=3, tag=code, form=True) + '\n'
-                        top_value = re.sub('️', '', top_text)
-                        if top_value not in google_top_values:
+                        if top_text not in google_top_values:
                             async_blocking = True
                             text += 'Добавлена в базу'
                             row = str(len(google_top_values) + 1)
+                            battle_stamp, encoded = worldtop_encoder(top_text)
                             try:
                                 top_range = top_worksheet.range('A' + row + ':A' + row)
                                 top_range[0].value = top_text
@@ -448,7 +485,14 @@ async def repeat_all_messages(message: types.Message):
                                 top_range = worksheet.range('A' + row + ':A' + row)
                                 top_range[0].value = top_text
                                 top_worksheet.update_cells(top_range)
-                            google_top_values.append(top_value)
+                            google_top_values.append(top_text)
+                            if top_dict.get(battle_stamp) is None:
+                                top_dict[battle_stamp] = encoded
+                            else:
+                                for castle in top_dict[battle_stamp]:
+                                    if top_dict[battle_stamp][castle] < encoded[castle]:
+                                        top_dict[battle_stamp] = encoded
+                                        break
                             text += bold(' успешно.')
                             await asyncio.sleep(2)
                             async_blocking = None
@@ -488,7 +532,7 @@ async def changing_season_start_description():
                 commands = await bot.get_my_commands()
                 for command in commands:
                     if command['command'] == 'season':
-                        desc = log_time(stamp - minute * 60, form='b_channel')
+                        desc = log_time(stamp - minute * 60, gmt=3, form='b_channel')
                         command['description'] = desc + '—' + desc
                         await bot.set_my_commands(commands)
                         objects.printer('Изменено описание команды /season на ' + desc + '—' + desc)
@@ -515,7 +559,7 @@ async def changing_season_description():
                             if last_battle_stamp < stamp:
                                 last_battle_stamp = stamp
                     if search:
-                        desc = search.group(1) + '—' + log_time(last_battle_stamp, form='b_channel')
+                        desc = search.group(1) + '—' + log_time(last_battle_stamp, gmt=3, form='b_channel')
                         if command['description'] != desc:
                             command['description'] = desc
                             await bot.set_my_commands(commands)
