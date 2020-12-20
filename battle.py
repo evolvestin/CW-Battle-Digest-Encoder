@@ -341,7 +341,7 @@ def true_world_top(date_start, date_end):
     for castle in castle_list:
         castle_stats = dict(castle[1])
         for castle_param in castle_stats:
-            if castle_param != 'trophy':
+            if type(castle_param) is int:
                 len_position = len(str(castle_stats[castle_param]))
                 if len_position > max_len_position:
                     max_len_position = len_position
@@ -352,7 +352,7 @@ def true_world_top(date_start, date_end):
         text += castle[0] + '|'
         castle_stats = dict(castle[1])
         for castle_param in castle_stats:
-            if castle_param != 'trophy':
+            if type(castle_param) is int:
                 amount = str(castle_stats[castle_param])
                 text += ' ' * (max_len_position - len(amount)) + amount + '|'
         text += str(castle_stats['trophy']) + ' \n'
@@ -426,7 +426,7 @@ async def repeat_all_messages(message: types.Message):
     global top_dict, top_worksheet, async_blocking, google_top_values
     try:
         text = 'ERROR'
-        if message['text'].lower() in ['/season', '/average', '/worldtop']:
+        if message['text'].lower() in standard_command_list:
             await seasoned(message)
 
         elif message['text'].lower().startswith(tuple(standard_command_list)):
