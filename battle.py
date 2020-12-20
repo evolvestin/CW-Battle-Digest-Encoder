@@ -21,20 +21,21 @@ idMe = 396978030
 last_post_id = None
 async_blocking = None
 checker_blocking = None
+eight_hours = 8 * 60 * 60
 main_address = 'https://t.me/ChatWarsDigest/'
 castle_dict = {'🖤': 'Скала', '🍆': 'Ферма', '🐢': 'Тортуга',
                '🌹': 'Замок Рассвета', '🍁': 'Амбер', '☘': 'Оплот', '🦇': 'Ночной Замок'}
+standard_command_list = ['/place', '/season', '/average', '/summary', '/worldtop']
 castle_names_search = '(' + '|'.join(castle_dict.values()) + ')'
 castle_search = '(' + '|'.join(castle_dict) + ')'
-character = {
+battle_patterns = {
     'со значительным преимуществом': '⚔😎',
     'успешно атаковали защитников': '⚔',
     'разыгралась настоящая бойня, но все-таки силы атакующих были ': '⚔⚡',
     'успешно отбились от': '🛡',
     'легко отбились от': '🛡👌',
     'героически отразили ': '🛡⚡',
-    'скучали, на них ': '🛡😴',
-}
+    'скучали, на них ': '🛡😴'}
 
 
 def worldtop_encoder(top):
@@ -86,7 +87,8 @@ def creation_google_values():
     return battle_sheet, battles, battle_values, top_sheet, tops, top_values
 
 
-battle_standard_stamp = 1606831200  # 01.12.2020 17:00 Первая битва, после которой стало необходимо собирать /worldtop
+first_cw_battle_stamp = 1527516000  # (28.05.2018 17:00, GMT+3) Самая первая битва в ChatWars 3
+battle_standard_stamp = 1606831200  # (01.12.2020 17:00, GMT+3) Начало сезона, после этой даты собираем /worldtop
 worksheet, google_dict, google_values, top_worksheet, top_dict, google_top_values = creation_google_values()
 bot = Auth.start_main_bot('async')
 dispatcher = Dispatcher(bot)
@@ -214,97 +216,19 @@ def battle_in_google_checker():
             Auth.thread_exec()
 
 
-def summary(date_start, date_end, text):
-    from timer import timer
+def world_top_sorted(date_start, date_end, sorting='trophy'):
     castle_db = {}
-    for i in [c for c in castle_dict]:
-        castle_db[i] = {}
-        castle_db[i]['money'] = 0
-        castle_db[i]['box'] = 0
-        castle_db[i]['trophy'] = 0
-        castle_db[i]['🔱'] = 0
-        for mini in character:
-            castle_db[i][character.get(mini)] = 0
-    for battle in google_values:
-        trophy_search = re.search('По итогам сражений замкам начислено:/(.*)', battle)
-        time_search = re.search(r'(\d{2}) (.*?) 10(\d{2}).Результаты сражений:', battle)
-        soup = re.sub('.*Результаты сражений:/', '', battle)
-        soup = re.sub('//По итогам сражений замкам начислено:.+', '', soup)
-        split = re.split('//', soup)
-        if time_search:
-            date = timer(time_search)
-            if date_start <= date <= date_end:
-                if trophy_search:
-                    trophy = re.split('/', trophy_search.group(1))
-                    for i in trophy:
-                        search = re.search(castle_search + r'.+ \+(\d+) 🏆 очков', i)
-                        if search:
-                            castle_db[search.group(1)]['trophy'] += int(search.group(2))
-                for string in split:
-                    search = re.search(castle_search, string)
-                    if search:
-                        for m in character:
-                            if m in string:
-                                mini = character.get(m)
-                                if '🔱' in string:
-                                    mini = '🔱'
-                                castle_db[search.group(1)][mini] += 1
-                                break
-
-                        money_search = re.search('.*(на|отобрали) (.*?) золотых монет', string)
-                        if money_search:
-                            if money_search.group(1) == 'на':
-                                sign = '-'
-                            else:
-                                sign = '+'
-                            castle_db[search.group(1)]['money'] += int(sign + money_search.group(2))
-
-                        box_search = re.search('.*потеряно (.*?) складских ячеек', string)
-                        if box_search:
-                            castle_db[search.group(1)]['box'] += int(box_search.group(1))
-    castle_temp = []
-    listed = list(castle_db.items())
-    listed.sort(key=lambda arr: arr[1]['money'])
-    text = text_header(date_start, date_end, text, True)
-    for i in listed:
-        castle_temp.append(i[0])
-    for i in reversed(castle_temp):
-        array = castle_db.get(i)
-        text += i + ': '
-        if array['money'] >= 0:
-            text += '+' + str(array['money']) + '💰 '
-        else:
-            text += str(array['money']) + '💰 '
-        if array['box'] > 0:
-            text += '+' + str(array['box']) + '📦 '
-        elif array['box'] < 0:
-            text += str(array['box']) + '📦 '
-        if array['trophy'] >= 0:
-            text += '+' + str(array['trophy']) + '🏆 \n'
-        text += code('⚔:' + str(array['⚔']))
-        if array['⚔😎'] > 0:
-            text += code('|⚔😎:' + str(array['⚔😎']))
-        if array['⚔⚡'] > 0:
-            text += code('|⚔⚡:' + str(array['⚔⚡']))
-        if array['🛡'] > 0:
-            text += code('|🛡:' + str(array['🛡']))
-        if array['🛡⚡'] > 0:
-            text += code('|🛡⚡:' + str(array['🛡⚡']))
-        if array['🔱'] > 0:
-            text += code('|🔱:' + str(array['🔱']))
-        text += '\n'
-    return text
-
-
-def world_top_sorted(date_start, date_end):
-    castle_db = {}
-    additions = {}
     for castle in [c for c in castle_dict]:
-        additions[castle] = 0
         castle_db[castle] = {}
+        castle_db[castle]['🔱'] = 0
+        castle_db[castle]['box'] = 0
+        castle_db[castle]['money'] = 0
         castle_db[castle]['trophy'] = 0
+        castle_db[castle]['addition'] = 0
         for position in range(1, 8):
             castle_db[castle][position] = 0
+        for pattern in battle_patterns:
+            castle_db[castle][battle_patterns.get(pattern)] = 0
     for battle_date in sorted(google_dict):
         trophy_search = re.search('По итогам сражений замкам начислено:/(.*)', google_dict[battle_date])
         if date_start <= battle_date <= date_end:
@@ -315,17 +239,36 @@ def world_top_sorted(date_start, date_end):
                     search = re.search(castle_search + r'.+ \+(\d+) 🏆 очков', i)
                     if search:
                         castle_db[search.group(1)]['trophy'] += int(search.group(2))
+            for string in re.split('//', google_dict[battle_date]):
+                search = re.search(castle_search, string)
+                box_search = re.search('.*потеряно (.*?) складских ячеек', string)
+                money_search = re.search('.*(на|отобрали) (.*?) золотых монет', string)
+                if search:
+                    for pattern in battle_patterns:
+                        if pattern in string:
+                            castle_db[search.group(1)][battle_patterns.get(pattern)] += 1
+                            break
+                        elif '🔱' in string:
+                            castle_db[search.group(1)]['🔱'] += 1
+                            break
+                    if box_search:
+                        castle_db[search.group(1)]['box'] -= int(box_search.group(1))
+                    if money_search:
+                        sign = '+'
+                        if money_search.group(1) == 'на':
+                            sign = '-'
+                        castle_db[search.group(1)]['money'] += int(sign + money_search.group(2))
             if battle_top_dict:
                 for castle in battle_top_dict:
                     trophy_from_top = battle_top_dict[castle]
                     trophy_from_battle = castle_db[castle]['trophy']
                     if trophy_from_top > trophy_from_battle:
-                        additions[castle] += trophy_from_top - trophy_from_battle
                         castle_db[castle]['trophy'] = trophy_from_top
+                        castle_db[castle]['addition'] += trophy_from_top - trophy_from_battle
             castle_temp = [i[0] for i in sorted(castle_db.items(), key=lambda x: x[1]['trophy'], reverse=True)]
             for i in castle_temp:
                 castle_db[i][castle_temp.index(i) + 1] += 1
-    return additions, sorted(castle_db.items(), key=lambda x: x[1]['trophy'], reverse=True)
+    return sorted(castle_db.items(), key=lambda x: x[1][sorting], reverse=True)
 
 
 def text_header(date_start, date_end, text, time_in_brackets=False):
@@ -336,10 +279,64 @@ def text_header(date_start, date_end, text, time_in_brackets=False):
     return bold(text) + '\n' + brackets[0] + code(' - '.join(time_frame)) + brackets[1] + '\n'
 
 
+def summary(date_start, date_end, period='период'):
+    text, postscript = '', ''
+    castle_list = world_top_sorted(date_start, date_end, 'money')
+    battle_date_start = last_battle_date = battle_date_end = first_cw_battle_stamp
+    if date_start < first_cw_battle_stamp:
+        first_cw_battle = log_time(first_cw_battle_stamp, gmt=3, form='au_normal')
+        postscript += '\nБитв раньше ' + first_cw_battle + ' быть не может'
+        date_start = first_cw_battle_stamp
+
+    while battle_date_start < date_start:
+        battle_date_start += eight_hours
+
+    while last_battle_date <= objects.time_now():
+        last_battle_date += eight_hours
+    last_battle_date -= eight_hours
+
+    while battle_date_end <= date_end:
+        battle_date_end += eight_hours
+    battle_date_end -= eight_hours
+
+    if battle_date_end > last_battle_date:
+        last_cw_battle = log_time(last_battle_date, gmt=3, form='au_normal')
+        postscript += '\nБитв после ' + last_cw_battle + ' еще не произошло'
+        battle_date_end = last_battle_date
+
+    battle_range = range(battle_date_start, battle_date_end + 1, eight_hours)
+    text = text_header(battle_date_start, battle_date_end, 'Отчет за ' + period, True)
+    missed_battles = [log_time(date, gmt=3, form='au_normal') for date in battle_range if date not in google_dict]
+    if missed_battles:
+        postscript += '\nЕсть неучтённые битвы (отсутствуют в базе, а может и вообще):\n' + ', '.join(missed_battles)
+
+    for castle in castle_list:
+        fence = ''
+        text += castle[0] + ': '
+        castle_stats = dict(castle[1])
+        for array in [['money', '💰 '], ['box', '📦 '], ['trophy', '🏆 \n']]:
+            main = array[0]
+            if castle_stats[main] >= 0 and main != 'box':
+                text += '+' + str(castle_stats[main]) + array[1]
+            elif castle_stats[main] < 0:
+                text += str(castle_stats[main]) + array[1]
+        for emoji in ['⚔', '⚔😎', '⚔⚡', '🛡', '🛡⚡', '🔱']:
+            if castle_stats.get(emoji) > 0:
+                text += code(fence + emoji + ':' + str(castle_stats.get(emoji)))
+                if fence == '':
+                    fence = '|'
+        if fence:
+            text += '\n'
+    if postscript and period == 'период':
+        remain_len = 4096 - len(re.sub('<.*?>', '', text))
+        text += code(postscript[:remain_len])
+    return text
+
+
 def true_world_top(date_start, date_end):
     text = '🏅|'
     max_len_position = 2
-    additions, castle_list = world_top_sorted(date_start, date_end)
+    castle_list = world_top_sorted(date_start, date_end)
     title = text_header(date_start, date_end, 'Ротация замков в /worldtop')
     for castle in castle_list:
         castle_stats = dict(castle[1])
@@ -364,18 +361,19 @@ def true_world_top(date_start, date_end):
 
 def average_top(date_start, date_end):
     castles_by_average = {}
-    additions, castle_list = world_top_sorted(date_start, date_end)
+    castle_list = world_top_sorted(date_start, date_end)
     text = text_header(date_start, date_end, 'Среднее место за сезон')
     for castle in castle_list:
         places_summary = 0
         numbers_battle = 0
+        castle_name = castle[0]
         castle_stats = dict(castle[1])
         for castle_param in castle_stats:
             if type(castle_param) == int:
                 places_summary += castle_param * castle_stats[castle_param]
                 numbers_battle += castle_stats[castle_param]
         average = round(places_summary / numbers_battle, 2)
-        castles_by_average[castle[0] + castle_dict[castle[0]]] = average
+        castles_by_average[castle_name + castle_dict[castle_name]] = average
     castle_list = sorted(castles_by_average.items(), key=lambda x: x[1])
     for castle in castle_list:
         place = str(castle_list.index(castle) + 1)
@@ -386,15 +384,15 @@ def average_top(date_start, date_end):
 def cw_world_top(date_start, date_end):
     text = '🏅'
     share_link = 'https://t.me/share/url?url=/worldtop'
-    additions, castle_list = world_top_sorted(date_start, date_end)
+    castle_list = world_top_sorted(date_start, date_end)
     for place in range(1, len(castle_list) + 1):
         addition = ''
         castle = castle_list[place - 1][0]
         castle_stats = dict(castle_list[place - 1][1])
         if place != 1:
             text += ' ' * 5
-        if additions[castle] > 0:
-            addition = code('+' + str(additions[castle]))
+        if castle_stats['addition'] > 0:
+            addition = code('+' + str(castle_stats['addition']))
         text += '# ' + str(place) + ' ' + castle + castle_dict.get(castle)
         text += ' ' + bold(castle_stats['trophy']) + addition + ' 🏆 очков\n'
     return text + code('Для обновления: ') + objects.html_link(share_link, '/worldtop')
@@ -405,10 +403,12 @@ async def seasoned(message):
     commands = await bot.get_my_commands()
     if message['text'].lower().startswith('/season'):
         command_function = true_world_top
+    elif message['text'].lower().startswith('/average'):
+        command_function = average_top
     elif message['text'].lower().startswith('/worldtop'):
         command_function = cw_world_top
     else:
-        command_function = average_top
+        command_function = summary
     for command in commands:
         if command['command'] == 'season':
             search = re.search('(.*?)—(.*)', command['description'])
@@ -429,9 +429,9 @@ async def repeat_all_messages(message: types.Message):
         if message['text'].lower() in ['/season', '/average', '/worldtop']:
             await seasoned(message)
 
-        elif message['text'].lower().startswith(('/summary', '/place', '/season', '/average', '/worldtop')):
+        elif message['text'].lower().startswith(tuple(standard_command_list)):
             bot_username = Auth.get_me.get('username').lower()
-            command_list = [command + '@' + bot_username for command in ['/season', '/average', '/worldtop']]
+            command_list = [command + '@' + bot_username for command in standard_command_list]
             if message['text'].lower() in command_list:
                 await seasoned(message)
             else:
@@ -443,28 +443,23 @@ async def repeat_all_messages(message: types.Message):
                 modified = re.sub(r'\.+', '.', modified)
                 modified = re.sub('\n+', '\n', modified)
                 modified = re.sub(' +', ' ', modified)
-                if message['text'].lower().startswith('/summary'):
-                    search_fraze = '(.*?)-(.*?)\n(.*)'
-                    command_function = summary
-                else:
-                    modified = re.sub('\n', '', modified)
-                    command_function = true_world_top
-                    search_fraze = '(.*?)-(.*)'
+                modified = re.sub('\n', '', modified)
 
-                if message['text'].lower().startswith('/average'):
+                search = re.search('(.*?)-(.*)', modified)
+                if message['text'].lower().startswith('/season'):
+                    command_function = true_world_top
+                elif message['text'].lower().startswith('/average'):
                     command_function = average_top
                 elif message['text'].lower().startswith('/worldtop'):
                     command_function = cw_world_top
+                else:
+                    command_function = summary
 
-                search = re.search(search_fraze, modified)
                 if search:
                     starting = stamper(search.group(1), '%d.%m.%Y %H:%M') - 3 * 60 * 60
                     ending = stamper(search.group(2), '%d.%m.%Y %H:%M') - 3 * 60 * 60
                     if starting and ending:
-                        if message['text'].lower().startswith('/summary'):
-                            text = command_function(starting, ending, search.group(3))
-                        else:
-                            text = command_function(starting, ending)
+                        text = command_function(starting, ending)
                 await bot.send_message(message['chat']['id'], text, parse_mode='HTML')
 
         elif message['forward_from']:
@@ -476,15 +471,14 @@ async def repeat_all_messages(message: types.Message):
                 if message['text'].startswith('🏅'):
                     if dict(message).get('forward_date') > battle_stamp:
                         while battle_stamp < dict(message).get('forward_date'):
-                            battle_stamp += 8 * 60 * 60
-
-                        while async_blocking is True:
-                            await asyncio.sleep(0.1)
-
-                        battle_stamp -= 8 * 60 * 60
+                            battle_stamp += eight_hours
+                        battle_stamp -= eight_hours
                         top_text = str(battle_stamp) + '/' + re.sub('\n', '/', message['text'])
                         text = bold('Битва') + ' за ' + log_time(battle_stamp, gmt=3, tag=code, form=True) + '\n'
                         if top_text not in google_top_values:
+                            while async_blocking is True:
+                                await asyncio.sleep(0.1)
+
                             async_blocking = True
                             text += 'Добавлена в базу'
                             row = str(len(google_top_values) + 1)
