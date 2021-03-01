@@ -544,7 +544,7 @@ async def changing_season_start_description():
                         command['description'] = desc + '—' + desc
                         await bot.set_my_commands(commands)
                         objects.printer('Изменено описание команды /season на ' + desc + '—' + desc)
-                        await Auth.edit_dev_message(start_message, '#new_season ' + code(desc))
+                        Auth.edit_dev_message(start_message, '\n#new_season ' + code(desc))
                 await asyncio.sleep(3600)
             await asyncio.sleep(1)
         except IndexError and Exception:
